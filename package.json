@@ -1,5 +1,5 @@
 {
-  "name": "seed-service-nestjs",
+  "name": "service-nestjs-assessment-test",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -20,9 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "openapi": "node dist/swagger.js",
     "postbuild": "node dist/swagger.js",
-    "contracts:seed-service-nestjs:gen": "npm --prefix ./contracts/seed-service-nestjs run gen",
-    "contracts:seed-service-nestjs:build": "npm --prefix ./contracts/seed-service-nestjs run build",
-    "contracts:seed-service-nestjs:publish": "npm --prefix ./contracts/seed-service-nestjs publish --access public"
+    "contracts:service-nestjs-assessment-test:gen": "npm --prefix ./contracts/service-nestjs-assessment-test run gen",
+    "contracts:service-nestjs-assessment-test:build": "npm --prefix ./contracts/service-nestjs-assessment-test run build",
+    "contracts:service-nestjs-assessment-test:publish": "npm --prefix ./contracts/service-nestjs-assessment-test publish --access public"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -51,7 +51,7 @@
     "@nestjs/testing": "^11.0.1",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
-    "@tmdjr/ngx-auth-client": "0.0.6",
+    "@tmdjr/ngx-auth-client": "0.0.12",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",

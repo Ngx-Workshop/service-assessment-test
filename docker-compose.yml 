@@ -2,9 +2,9 @@
 version: '3.8'
 
 services:
-  seed-service-nestjs:
+  service-nestjs-assessment-test:
     build: .
-    container_name: seed-service-nestjs
+    container_name: service-nestjs-assessment-test
     restart: unless-stopped
     ports:
       - "3003:3003"
