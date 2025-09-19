@@ -109,5 +109,5 @@ jobs:
               --env-file .env \
               --network ngx-net \
               --restart unless-stopped \
-              -p 3003:3003 \
+              -p 3005:3005 \
               service-nestjs-assessment-test
