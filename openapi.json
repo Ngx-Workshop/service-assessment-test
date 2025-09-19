@@ -1,9 +1,40 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/example-crud/auth-test": {
+    "/assessment-test": {
+      "post": {
+        "operationId": "AssessmentTestController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentTestDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      },
       "get": {
-        "operationId": "ExampleCrudController_authTest",
+        "operationId": "AssessmentTestController_fetch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      },
+      "patch": {
+        "operationId": "AssessmentTestController_update",
         "parameters": [],
         "responses": {
           "200": {
@@ -11,57 +42,83 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthTestDto"
+                  "$ref": "#/components/schemas/AssessmentTestDto"
                 }
               }
             }
           }
         },
         "tags": [
-          "Example Crud"
+          "Assessment Tests"
         ]
-      }
-    },
-    "/example-crud": {
-      "post": {
-        "operationId": "ExampleCrudController_create",
+      },
+      "delete": {
+        "operationId": "AssessmentTestController_delete",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateExampleMongodbDocDto"
+                "type": "string"
               }
             }
           }
         },
         "responses": {
-          "201": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/user-asssessments": {
+      "get": {
+        "operationId": "AssessmentTestController_fetchUsersAssessments",
+        "parameters": [],
+        "responses": {
+          "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserAssessmentTestDto"
+                  }
                 }
               }
             }
           }
         },
         "tags": [
-          "Example Crud"
+          "Assessment Tests"
         ]
-      },
+      }
+    },
+    "/assessment-test/user-subjects-eligibility": {
       "get": {
-        "operationId": "ExampleCrudController_findAll",
+        "operationId": "AssessmentTestController_fetchUserSubjectsEligibility",
         "parameters": [
           {
-            "name": "archived",
-            "required": false,
+            "name": "subjects",
+            "required": true,
             "in": "query",
-            "description": "Filter by archived status",
+            "description": "CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS",
             "schema": {
-              "type": "boolean"
+              "example": "ANGULAR,NESTJS",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ANGULAR",
+                  "NESTJS",
+                  "RXJS"
+                ]
+              }
             }
           }
         ],
@@ -73,7 +130,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                    "$ref": "#/components/schemas/UserSubjectEligibilityDto"
                   }
                 }
               }
@@ -81,57 +138,51 @@
           }
         },
         "tags": [
-          "Example Crud"
+          "Assessment Tests"
         ]
       }
     },
-    "/example-crud/{id}": {
-      "get": {
-        "operationId": "ExampleCrudController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Example Crud"
-        ]
-      },
-      "patch": {
-        "operationId": "ExampleCrudController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+    "/assessment-test/start-test": {
+      "post": {
+        "operationId": "AssessmentTestController_startTest",
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateExampleMongodbDocDto"
+                "$ref": "#/components/schemas/StartTestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAssessmentTestDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/submit-test": {
+      "post": {
+        "operationId": "AssessmentTestController_submitTest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitTestDto"
               }
             }
           }
@@ -142,71 +193,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                  "$ref": "#/components/schemas/UserAssessmentTestDto"
                 }
               }
             }
           }
         },
         "tags": [
-          "Example Crud"
-        ]
-      },
-      "delete": {
-        "operationId": "ExampleCrudController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Example Crud"
+          "Assessment Tests"
         ]
       }
     },
-    "/example-crud/name/{name}": {
+    "/assessment-test/{id}": {
       "get": {
-        "operationId": "ExampleCrudController_findByName",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Example Crud"
-        ]
-      }
-    },
-    "/example-crud/{id}/archive": {
-      "patch": {
-        "operationId": "ExampleCrudController_archive",
+        "operationId": "AssessmentTestController_fetchAssessmentTest",
         "parameters": [
           {
             "name": "id",
@@ -223,44 +223,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                  "$ref": "#/components/schemas/AssessmentTestDto"
                 }
               }
             }
           }
         },
         "tags": [
-          "Example Crud"
-        ]
-      }
-    },
-    "/example-crud/{id}/unarchive": {
-      "patch": {
-        "operationId": "ExampleCrudController_unarchive",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Example Crud"
+          "Assessment Tests"
         ]
       }
     }
@@ -275,73 +245,48 @@
   "servers": [],
   "components": {
     "schemas": {
-      "AuthTestDto": {
+      "TestChoiceDto": {
         "type": "object",
         "properties": {
-          "message": {
+          "value": {
             "type": "string"
           }
         },
         "required": [
-          "message"
+          "value"
         ]
       },
-      "ExampleMongodbDocObjectDto": {
+      "TestQuestionDto": {
         "type": "object",
         "properties": {
-          "street": {
+          "question": {
             "type": "string"
           },
-          "city": {
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestChoiceDto"
+            }
+          },
+          "answer": {
             "type": "string"
           },
-          "state": {
+          "correctResponse": {
             "type": "string"
           },
-          "zip": {
+          "incorrectResponse": {
             "type": "string"
           }
         },
         "required": [
-          "street",
-          "city",
-          "state",
-          "zip"
+          "question",
+          "choices",
+          "answer",
+          "correctResponse",
+          "incorrectResponse"
         ]
       },
-      "CreateExampleMongodbDocDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "SOME_ENUM",
-              "SOME_OTHER_ENUM"
-            ]
-          },
-          "description": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "exampleMongodbDocObject": {
-            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
-          },
-          "lastUpdated": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "name",
-          "type"
-        ]
-      },
-      "ExampleMongodbDocDto": {
+      "AssessmentTestDto": {
         "type": "object",
         "properties": {
           "_id": {
@@ -350,28 +295,26 @@
           "name": {
             "type": "string"
           },
-          "type": {
+          "subject": {
             "type": "string",
             "enum": [
-              "SOME_ENUM",
-              "SOME_OTHER_ENUM"
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
             ]
           },
-          "version": {
+          "level": {
             "type": "number"
-          },
-          "description": {
-            "type": "string"
           },
           "lastUpdated": {
             "type": "string",
             "format": "date-time"
           },
-          "archived": {
-            "type": "boolean"
-          },
-          "exampleMongodbDocObject": {
-            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
+          "testQuestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestQuestionDto"
+            }
           },
           "__v": {
             "type": "number"
@@ -380,41 +323,130 @@
         "required": [
           "_id",
           "name",
-          "type",
-          "version",
-          "description",
+          "subject",
+          "level",
           "lastUpdated",
-          "archived",
+          "testQuestions",
           "__v"
         ]
       },
-      "UpdateExampleMongodbDocDto": {
+      "UserAssessmentTestDto": {
         "type": "object",
         "properties": {
-          "name": {
+          "_id": {
             "type": "string"
           },
-          "type": {
+          "uuid": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "subject": {
             "type": "string",
             "enum": [
-              "SOME_ENUM",
-              "SOME_OTHER_ENUM"
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
             ]
           },
-          "description": {
-            "type": "string"
+          "userAnswers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "archived": {
+          "passed": {
             "type": "boolean"
           },
-          "exampleMongodbDocObject": {
-            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
+          "completed": {
+            "type": "boolean"
           },
           "lastUpdated": {
             "type": "string",
             "format": "date-time"
+          },
+          "__v": {
+            "type": "number"
           }
-        }
+        },
+        "required": [
+          "_id",
+          "uuid",
+          "testName",
+          "score",
+          "subject",
+          "userAnswers",
+          "passed",
+          "completed",
+          "lastUpdated",
+          "__v"
+        ]
+      },
+      "UserSubjectEligibilityDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          },
+          "levelCount": {
+            "type": "number"
+          },
+          "totalCount": {
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subject",
+          "levelCount",
+          "totalCount",
+          "enabled"
+        ]
+      },
+      "StartTestDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          }
+        },
+        "required": [
+          "subject"
+        ]
+      },
+      "SubmitTestDto": {
+        "type": "object",
+        "properties": {
+          "testId": {
+            "type": "string"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "testId",
+          "answers"
+        ]
       }
     }
   }
