@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
-export type TAssessmentTest = AssessmentTest & Document;
+export type AssessmentTestDocument = HydratedDocument<AssessmentTest>;
 
 type TestSubject = 'ANGULAR' | 'NESTJS' | 'RXJS';
 export interface TestQuestion {
@@ -14,7 +14,6 @@ export interface TestQuestion {
 
 @Schema()
 export class AssessmentTest {
-
   @Prop({ default: () => 'Test Name' })
   name: string;
 
@@ -31,4 +30,5 @@ export class AssessmentTest {
   testQuestions: TestQuestion[];
 }
 
-export const AssessmentTestSchema = SchemaFactory.createForClass(AssessmentTest);
+export const AssessmentTestSchema =
+  SchemaFactory.createForClass(AssessmentTest);

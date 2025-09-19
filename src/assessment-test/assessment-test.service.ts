@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  AssessmentTest,
-  TAssessmentTest,
-} from './schemas/assessment-test.schemas';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import {
-  UserAssessmentTest,
-  TUserAssessmentTest,
-} from './schemas/user-assessment-test.schemas';
 import {
   catchError,
   forkJoin,
@@ -18,17 +10,26 @@ import {
   switchMap,
   throwError,
 } from 'rxjs';
+import { TestSubjectEnum, UserSubjectEligibilityDto } from './dto/create.dto';
+import {
+  AssessmentTest,
+  AssessmentTestDocument,
+} from './schemas/assessment-test.schemas';
+import {
+  UserAssessmentTest,
+  UserAssessmentTestDocument,
+} from './schemas/user-assessment-test.schemas';
 
 @Injectable()
 export class AssessmentTestService {
   constructor(
     @InjectModel(UserAssessmentTest.name)
-    private userAssessmentTestModel: Model<TUserAssessmentTest>,
+    private userAssessmentTestModel: Model<UserAssessmentTestDocument>,
     @InjectModel(AssessmentTest.name)
-    private assessmentTestModel: Model<TAssessmentTest>
+    private assessmentTestModel: Model<AssessmentTestDocument>
   ) {}
 
-  async create(assessmentTest: TAssessmentTest) {
+  async create(assessmentTest: AssessmentTestDocument) {
     return await this.assessmentTestModel.create(assessmentTest);
   }
 
@@ -42,7 +43,7 @@ export class AssessmentTestService {
       .exec();
   }
 
-  async update(assessmentTest: TAssessmentTest) {
+  async update(assessmentTest: AssessmentTestDocument) {
     return await this.assessmentTestModel.findByIdAndUpdate(
       { _id: assessmentTest._id },
       assessmentTest,
@@ -58,7 +59,10 @@ export class AssessmentTestService {
     return await this.userAssessmentTestModel.find({ userId }).exec();
   }
 
-  fetchUserSubjectsEligibility(userId: string, subjects: string[]) {
+  fetchUserSubjectsEligibility(
+    userId: string,
+    subjects: TestSubjectEnum[]
+  ): Observable<UserSubjectEligibilityDto[]> {
     return forkJoin({
       userTests: from(
         this.userAssessmentTestModel.find({
@@ -102,7 +106,10 @@ export class AssessmentTestService {
     );
   }
 
-  startTest(subject: string, userId: string): Observable<TUserAssessmentTest> {
+  startTest(
+    subject: string,
+    userId: string
+  ): Observable<UserAssessmentTestDocument> {
     return from(this.userAssessmentTestModel.find({ userId, subject })).pipe(
       map((userAssessmentsTests) => {
         const testsArray = Array.isArray(userAssessmentsTests)
@@ -114,7 +121,7 @@ export class AssessmentTestService {
 
       switchMap((result) => {
         if (!Array.isArray(result)) {
-          return from(Promise.resolve(result as TUserAssessmentTest));
+          return from(Promise.resolve(result as UserAssessmentTestDocument));
         }
 
         const nextTestLevel = result.length + 1;
@@ -122,8 +129,8 @@ export class AssessmentTestService {
         return from(
           this.assessmentTestModel.findOne({ subject, level: nextTestLevel })
         ).pipe(
-          switchMap((nextAssessmentTest) => {
-            if (!nextAssessmentTest) {
+          switchMap((nexAssessmentTestDocument) => {
+            if (!nexAssessmentTestDocument) {
               return throwError(
                 () => new Error(`User has maxed out tests for ${subject}`)
               );
@@ -131,8 +138,8 @@ export class AssessmentTestService {
 
             return from(
               this.userAssessmentTestModel.create({
-                assessmentTestId: nextAssessmentTest._id,
-                testName: nextAssessmentTest.name,
+                assessmentTestId: nexAssessmentTestDocument._id,
+                testName: nexAssessmentTestDocument.name,
                 userId,
                 subject,
               })
@@ -149,10 +156,19 @@ export class AssessmentTestService {
   submitTest(
     userAssessmentTestId: string,
     answers: string[]
-  ): Observable<TUserAssessmentTest> {
+  ): Observable<UserAssessmentTestDocument> {
     return from(
-      this.userAssessmentTestModel.findById(userAssessmentTestId)
+      this.userAssessmentTestModel
+        .findById(userAssessmentTestId)
+        .orFail(() => new Error('User assessment test not found'))
+        .exec()
     ).pipe(
+      switchMap((userAssessmentTest) => {
+        if (!userAssessmentTest) {
+          return throwError(() => new Error('User assessment test not found'));
+        }
+        return from(Promise.resolve(userAssessmentTest));
+      }),
       switchMap((userAssessmentTest) => {
         if (!userAssessmentTest)
           return throwError(() => new Error('User assessment test not found'));
@@ -162,7 +178,10 @@ export class AssessmentTestService {
           );
 
         return from(
-          this.assessmentTestModel.findById(userAssessmentTest.assessmentTestId)
+          this.assessmentTestModel
+            .findById(userAssessmentTest.assessmentTestId)
+            .orFail(() => new Error('Assessment test not found'))
+            .exec()
         ).pipe(
           switchMap((assessmentTest) => {
             if (!assessmentTest)
@@ -177,17 +196,21 @@ export class AssessmentTestService {
                 : acc;
             }, 0);
 
+            const update = {
+              completed: true,
+              score,
+              passed: score === assessmentTest.testQuestions.length,
+              userAnswers: answers,
+              lastUpdated: new Date(),
+            };
+
             return from(
-              this.userAssessmentTestModel.findByIdAndUpdate(
-                userAssessmentTestId,
-                {
-                  completed: true,
-                  score,
-                  passed: score === assessmentTest.testQuestions.length,
-                  userAnswers: answers,
-                },
-                { returnDocument: 'after' }
-              )
+              this.userAssessmentTestModel
+                .findByIdAndUpdate(userAssessmentTestId, update, { new: true })
+                .orFail(
+                  () => new Error('Failed to update user assessment test')
+                )
+                .exec()
             );
           })
         );

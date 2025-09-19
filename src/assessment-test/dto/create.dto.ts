@@ -29,10 +29,7 @@ export class UserAssessmentTestDto {
   _id: string;
 
   @ApiProperty()
-  assessmentTestId: string;
-
-  @ApiProperty()
-  userId: string;
+  uuid: string;
 
   @ApiProperty()
   testName: string;
@@ -118,3 +115,71 @@ export class CreateUserAssessmentTestDto {
 export class UpdateUserAssessmentTestDto extends PartialType(
   CreateUserAssessmentTestDto
 ) {}
+
+// Eligibility DTO
+// {
+//   subject,
+//   levelCount: completedCount,
+//   totalCount,
+//   enabled: completedCount < totalCount,
+// }
+export class UserSubjectEligibilityDto {
+  @ApiProperty({ enum: TestSubjectEnum })
+  subject: TestSubjectEnum;
+
+  @ApiProperty()
+  levelCount: number;
+
+  @ApiProperty()
+  totalCount: number;
+
+  @ApiProperty()
+  enabled: boolean;
+}
+
+// Nested DTOs for AssessmentTest
+export class TestChoiceDto {
+  @ApiProperty()
+  value: string;
+}
+
+export class TestQuestionDto {
+  @ApiProperty()
+  question: string;
+
+  @ApiProperty({ type: [TestChoiceDto] })
+  choices: TestChoiceDto[];
+
+  @ApiProperty()
+  answer: string;
+
+  @ApiProperty()
+  correctResponse: string;
+
+  @ApiProperty()
+  incorrectResponse: string;
+}
+
+// READ/Response DTO for an AssessmentTest
+export class AssessmentTestDto {
+  @ApiProperty()
+  _id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty({ enum: TestSubjectEnum })
+  subject: TestSubjectEnum;
+
+  @ApiProperty()
+  level: number;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  lastUpdated: string;
+
+  @ApiProperty({ type: [TestQuestionDto] })
+  testQuestions: TestQuestionDto[];
+
+  @ApiProperty()
+  __v: number;
+}
