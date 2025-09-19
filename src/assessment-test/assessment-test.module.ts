@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { NgxAuthClientModule } from '@tmdjr/ngx-auth-client';
 import { AssessmentTestController } from './assessment-test.controller';
 import { AssessmentTestService } from './assessment-test.service';
 import {
@@ -14,6 +15,7 @@ import { UserAssessmentTestService } from './user-assessment-test.service';
 
 @Module({
   imports: [
+    NgxAuthClientModule,
     MongooseModule.forFeature([
       { name: AssessmentTest.name, schema: AssessmentTestSchema },
       { name: UserAssessmentTest.name, schema: UserAssessmentTestSchema },

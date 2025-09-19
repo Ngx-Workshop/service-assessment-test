@@ -6,8 +6,10 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -17,13 +19,19 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { ActiveUser, IActiveUserData } from '@tmdjr/ngx-auth-client';
+import {
+  ActiveUser,
+  IActiveUserData,
+  RemoteAuthGuard,
+} from '@tmdjr/ngx-auth-client';
 import { AssessmentTestService } from './assessment-test.service';
 import {
   AssessmentTestDto,
-  TestSubjectEnum,
+  StartTestDto,
+  SubmitTestDto,
   UserAssessmentTestDto,
   UserSubjectEligibilityDto,
+  UserSubjectsEligibilityQueryDto,
 } from './dto/create.dto';
 import { AssessmentTestDocument } from './schemas/assessment-test.schemas';
 
@@ -33,24 +41,28 @@ export class AssessmentTestController {
   constructor(private assessmentTestService: AssessmentTestService) {}
 
   @Post()
+  @UseGuards(RemoteAuthGuard)
   @ApiCreatedResponse({ type: AssessmentTestDto })
   create(@Body() assessmentTest: AssessmentTestDocument) {
     return this.assessmentTestService.create(assessmentTest);
   }
 
   @Get()
+  @UseGuards(RemoteAuthGuard)
   @ApiOkResponse({ isArray: true })
   fetch() {
     return this.assessmentTestService.fetch();
   }
 
-  @Post()
-  @ApiOkResponse()
+  @Patch()
+  @UseGuards(RemoteAuthGuard)
+  @ApiOkResponse({ type: AssessmentTestDto })
   update(@Body() assessmentTest: AssessmentTestDocument) {
     return this.assessmentTestService.update(assessmentTest);
   }
 
   @Delete()
+  @UseGuards(RemoteAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   delete(@Body() id: string) {
@@ -58,68 +70,50 @@ export class AssessmentTestController {
   }
 
   @Get('user-asssessments')
+  @UseGuards(RemoteAuthGuard)
   @ApiOkResponse({ type: UserAssessmentTestDto, isArray: true })
   fetchUsersAssessments(@ActiveUser() user: IActiveUserData) {
     return this.assessmentTestService.fetchUsersAssessments(user.sub);
   }
 
   @Get('user-subjects-eligibility')
+  @UseGuards(RemoteAuthGuard)
   @ApiQuery({
     name: 'subjects',
     required: true,
     type: String,
+    isArray: true,
     description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
   })
   @ApiOkResponse({ type: UserSubjectEligibilityDto, isArray: true })
   fetchUserSubjectsEligibility(
     @ActiveUser() user: IActiveUserData,
-    @Query('subjects') subjects: string
+    @Query() query: UserSubjectsEligibilityQueryDto
   ) {
-    const subjectArray = subjects.split(',');
     return this.assessmentTestService.fetchUserSubjectsEligibility(
       user.sub,
-      subjectArray as TestSubjectEnum[]
+      query.subjects
     );
   }
 
   @Post('start-test')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        subject: { type: 'string', enum: Object.values(TestSubjectEnum) },
-      },
-      required: ['subject'],
-    },
-  })
+  @UseGuards(RemoteAuthGuard)
+  @ApiBody({ type: StartTestDto })
   @ApiCreatedResponse({ type: UserAssessmentTestDto })
-  startTest(
-    @ActiveUser() user: IActiveUserData,
-    @Body() reqBody: { subject: string }
-  ) {
-    return this.assessmentTestService.startTest(reqBody.subject, user.sub);
+  startTest(@ActiveUser() user: IActiveUserData, @Body() body: StartTestDto) {
+    return this.assessmentTestService.startTest(body.subject, user.sub);
   }
 
   @Post('submit-test')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        testId: { type: 'string' },
-        answers: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['testId', 'answers'],
-    },
-  })
+  @UseGuards(RemoteAuthGuard)
+  @ApiBody({ type: SubmitTestDto })
   @ApiOkResponse({ type: UserAssessmentTestDto })
-  submitTest(@Body() reqBody: { testId: string; answers: string[] }) {
-    return this.assessmentTestService.submitTest(
-      reqBody.testId,
-      reqBody.answers
-    );
+  submitTest(@Body() body: SubmitTestDto) {
+    return this.assessmentTestService.submitTest(body.testId, body.answers);
   }
 
   @Get(':id')
+  @UseGuards(RemoteAuthGuard)
   @ApiOkResponse({ type: AssessmentTestDto })
   fetchAssessmentTest(@Param('id') id: string) {
     return this.assessmentTestService.fetchAssessmentTest(id);

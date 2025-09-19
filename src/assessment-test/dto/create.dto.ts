@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
+  ArrayNotEmpty,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -182,4 +184,43 @@ export class AssessmentTestDto {
 
   @ApiProperty()
   __v: number;
+}
+
+export class SubmitTestDto {
+  @ApiProperty()
+  @IsString()
+  testId: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  answers: string[];
+}
+
+export class StartTestDto {
+  @ApiProperty({ enum: TestSubjectEnum })
+  @IsEnum(TestSubjectEnum)
+  subject: TestSubjectEnum;
+}
+
+export class UserSubjectsEligibilityQueryDto {
+  @ApiProperty({
+    description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
+    enum: TestSubjectEnum,
+    isArray: true,
+    example: 'ANGULAR,NESTJS',
+  })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== 'string') return [];
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(TestSubjectEnum, { each: true })
+  subjects: TestSubjectEnum[];
 }
