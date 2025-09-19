@@ -7,7 +7,7 @@ services:
     container_name: service-nestjs-assessment-test
     restart: unless-stopped
     ports:
-      - "3003:3003"
+      - "3005:3005"
     env_file:
       - .env
     networks:
