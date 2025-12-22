@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
-import { NgxAuthClientModule, RemoteAuthGuard } from '@tmdjr/ngx-auth-client';
+import {
+  AuthenticationGuard,
+  NgxAuthClientModule,
+  RemoteAuthGuard,
+  RolesGuard,
+} from '@tmdjr/ngx-auth-client';
 import { AssessmentTestController } from './assessment-test.controller';
 import { AssessmentTestService } from './assessment-test.service';
 import {
@@ -11,7 +17,6 @@ import {
   UserAssessmentTest,
   UserAssessmentTestSchema,
 } from './schemas/user-assessment-test.schemas';
-import { UserAssessmentTestService } from './user-assessment-test.service';
 
 const ASSESSMENT_SCHEMA_IMPORTS =
   process.env.GENERATE_OPENAPI === 'true'
@@ -60,7 +65,14 @@ const ASSESSMENT_FAKE_PROVIDERS =
   controllers: [AssessmentTestController],
   providers: [
     AssessmentTestService,
-    UserAssessmentTestService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthenticationGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
     ...ASSESSMENT_FAKE_PROVIDERS,
   ],
 })
