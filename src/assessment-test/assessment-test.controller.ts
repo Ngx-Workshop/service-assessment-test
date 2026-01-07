@@ -105,6 +105,26 @@ export class AssessmentTestController {
     );
   }
 
+  @Get('admin-user-subjects-eligibility/:id')
+  @UseGuards(RemoteAuthGuard)
+  @ApiQuery({
+    name: 'subjects',
+    required: true,
+    type: String,
+    isArray: true,
+    description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
+  })
+  @ApiOkResponse({ type: UserSubjectEligibilityDto, isArray: true })
+  fetchAdminUserSubjectsEligibility(
+    @Param('id') id: string,
+    @Query() query: UserSubjectsEligibilityQueryDto
+  ) {
+    return this.assessmentTestService.fetchUserSubjectsEligibility(
+      id,
+      query.subjects
+    );
+  }
+
   @Post('start-test')
   @UseGuards(RemoteAuthGuard)
   @ApiBody({ type: StartTestDto })
