@@ -78,7 +78,7 @@ export class AssessmentTestController {
     return this.assessmentTestService.fetchUsersAssessments(user.sub);
   }
 
-  @Get('admin-user-asssessments')
+  @Get('admin-user-asssessments/:id')
   @Roles(Role.Admin)
   @ApiOkResponse({ type: UserAssessmentTestDto, isArray: true })
   fetchAdminUserAssessments(@Param('id') id: string) {
