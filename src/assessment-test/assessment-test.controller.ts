@@ -23,6 +23,8 @@ import {
   ActiveUser,
   IActiveUserData,
   RemoteAuthGuard,
+  Role,
+  Roles,
 } from '@tmdjr/ngx-auth-client';
 import { AssessmentTestService } from './assessment-test.service';
 import {
@@ -74,6 +76,13 @@ export class AssessmentTestController {
   @ApiOkResponse({ type: UserAssessmentTestDto, isArray: true })
   fetchUsersAssessments(@ActiveUser() user: IActiveUserData) {
     return this.assessmentTestService.fetchUsersAssessments(user.sub);
+  }
+
+  @Get('admin-user-asssessments')
+  @Roles(Role.Admin)
+  @ApiOkResponse({ type: UserAssessmentTestDto, isArray: true })
+  fetchAdminUserAssessments(@Param('id') id: string) {
+    return this.assessmentTestService.fetchUsersAssessments(id);
   }
 
   @Get('user-subjects-eligibility')
