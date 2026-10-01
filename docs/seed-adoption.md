@@ -1,5 +1,7 @@
 # Seed adoption status — assessment service
 
+> Historical migration snapshot. The runtime repairs and current verification are recorded in [001 reliable authoring](../specs/001-reliable-authoring/handoff.md). Read architecture/development for current behavior.
+
 The Markdown workflow is adopted from `seed-service-nestjs`. Workflow instructions
 and templates remain reusable; entry point, constitution and context now describe
 assessment definitions and learner attempts instead of example-document CRUD.

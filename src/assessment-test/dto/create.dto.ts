@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsMongoId,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -27,6 +28,14 @@ export enum TestSubjectEnum {
  * READ/Response DTO for a single UserAssessmentTest
  */
 export class UserAssessmentTestDto {
+  @ApiProperty()
+  assessmentTestId: string;
+
+  @ApiPropertyOptional({
+    description: 'Canonical owner; legacy records may only have uuid',
+  })
+  userId?: string;
+
   @ApiProperty()
   _id: string;
 
@@ -188,7 +197,7 @@ export class AssessmentTestDto {
 
 export class SubmitTestDto {
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   testId: string;
 
   @ApiProperty({ type: [String] })

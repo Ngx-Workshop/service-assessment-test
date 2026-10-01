@@ -11,7 +11,8 @@ const DB_IMPORTS =
           inject: [ConfigService],
           useFactory: async (config: ConfigService) => ({
             uri: config.get<string>('MONGODB_URI'),
-            serverSelectionTimeoutMS: 5000, // Timeout in 5 seconds
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 5000, // Timeout in 5 seconds
           }),
         }),
       ];

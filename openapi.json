@@ -5,6 +5,16 @@
       "post": {
         "operationId": "AssessmentTestController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssessmentTestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -26,7 +36,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentTestDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -36,6 +56,16 @@
       "patch": {
         "operationId": "AssessmentTestController_update",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssessmentTestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -99,10 +129,94 @@
         ]
       }
     },
+    "/assessment-test/admin-user-asssessments/{id}": {
+      "get": {
+        "operationId": "AssessmentTestController_fetchAdminUserAssessments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserAssessmentTestDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
     "/assessment-test/user-subjects-eligibility": {
       "get": {
         "operationId": "AssessmentTestController_fetchUserSubjectsEligibility",
         "parameters": [
+          {
+            "name": "subjects",
+            "required": true,
+            "in": "query",
+            "description": "CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS",
+            "schema": {
+              "example": "ANGULAR,NESTJS",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ANGULAR",
+                  "NESTJS",
+                  "RXJS"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSubjectEligibilityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/admin-user-subjects-eligibility/{id}": {
+      "get": {
+        "operationId": "AssessmentTestController_fetchAdminUserSubjectsEligibility",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "subjects",
             "required": true,
@@ -204,7 +318,58 @@
         ]
       }
     },
+    "/assessment-test/attempts/{id}/questions": {
+      "get": {
+        "operationId": "AssessmentTestController_questions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptQuestionsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
     "/assessment-test/{id}": {
+      "delete": {
+        "operationId": "AssessmentTestController_deleteById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      },
       "get": {
         "operationId": "AssessmentTestController_fetchAssessmentTest",
         "parameters": [
@@ -245,6 +410,79 @@
   "servers": [],
   "components": {
     "schemas": {
+      "ChoiceInputDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "QuestionInputDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChoiceInputDto"
+            }
+          },
+          "answer": {
+            "type": "string"
+          },
+          "correctResponse": {
+            "type": "string"
+          },
+          "incorrectResponse": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "choices",
+          "answer",
+          "correctResponse",
+          "incorrectResponse"
+        ]
+      },
+      "CreateAssessmentTestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "testQuestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionInputDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "subject",
+          "level",
+          "testQuestions"
+        ]
+      },
       "TestChoiceDto": {
         "type": "object",
         "properties": {
@@ -330,9 +568,57 @@
           "__v"
         ]
       },
+      "UpdateAssessmentTestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "testQuestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionInputDto"
+            }
+          },
+          "_id": {
+            "type": "string"
+          },
+          "__v": {
+            "type": "number",
+            "description": "Version returned by the definition read; prevents lost updates."
+          }
+        },
+        "required": [
+          "name",
+          "subject",
+          "level",
+          "testQuestions",
+          "_id",
+          "__v"
+        ]
+      },
       "UserAssessmentTestDto": {
         "type": "object",
         "properties": {
+          "assessmentTestId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Canonical owner; legacy records may only have uuid"
+          },
           "_id": {
             "type": "string"
           },
@@ -374,6 +660,7 @@
           }
         },
         "required": [
+          "assessmentTestId",
           "_id",
           "uuid",
           "testName",
@@ -446,6 +733,46 @@
         "required": [
           "testId",
           "answers"
+        ]
+      },
+      "LearnerQuestionDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChoiceInputDto"
+            }
+          }
+        },
+        "required": [
+          "question",
+          "choices"
+        ]
+      },
+      "AttemptQuestionsDto": {
+        "type": "object",
+        "properties": {
+          "testId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "testQuestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearnerQuestionDto"
+            }
+          }
+        },
+        "required": [
+          "testId",
+          "name",
+          "testQuestions"
         ]
       }
     }

@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import {
-  AuthenticationGuard,
   NgxAuthClientModule,
   RemoteAuthGuard,
   RolesGuard,
 } from '@tmdjr/ngx-auth-client';
 import { AssessmentTestController } from './assessment-test.controller';
+import { AssessmentAuthGuard } from './assessment-auth.guard';
 import { AssessmentTestService } from './assessment-test.service';
 import {
   AssessmentTest,
@@ -67,7 +67,7 @@ const ASSESSMENT_FAKE_PROVIDERS =
     AssessmentTestService,
     {
       provide: APP_GUARD,
-      useClass: AuthenticationGuard,
+      useClass: AssessmentAuthGuard,
     },
     {
       provide: APP_GUARD,

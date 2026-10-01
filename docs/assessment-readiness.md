@@ -1,5 +1,7 @@
 # Assessment readiness review and documentation handoff
 
+> Historical migration snapshot. The runtime repairs and current verification are recorded in [001 reliable authoring](../specs/001-reliable-authoring/handoff.md). Read architecture/development for current behavior.
+
 Review baseline: `22aaac7`. Scope: read the service codebase and migrate the seed's
 Markdown workflow. Findings are source observations, not live exploit tests or
 verified production failures. Runtime changes require their own specification.

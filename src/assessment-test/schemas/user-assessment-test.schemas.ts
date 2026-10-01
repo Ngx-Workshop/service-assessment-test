@@ -7,6 +7,9 @@ type TestSubject = 'ANGULAR' | 'NESTJS' | 'RXJS';
 
 @Schema()
 export class UserAssessmentTest {
+  @Prop({ index: true })
+  userId: string;
+
   @Prop({ required: true })
   assessmentTestId: string;
 
