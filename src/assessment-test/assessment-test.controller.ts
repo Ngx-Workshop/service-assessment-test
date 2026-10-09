@@ -24,6 +24,12 @@ import {
   Role,
   Roles,
 } from '@tmdjr/ngx-auth-client';
+import {
+  DraftAnswersDto,
+  LearnerSubjectDto,
+  LearnerAttemptDto,
+  LearnerResultDto,
+} from './dto/learner.dto';
 import { AssessmentTestService } from './assessment-test.service';
 import {
   AssessmentTestDto,
@@ -71,6 +77,34 @@ export class AssessmentTestController {
   @ApiNoContentResponse()
   delete(@Body() id: string) {
     return this.assessmentTestService.delete(id);
+  }
+
+  @Get('learner/catalog')
+  @ApiOkResponse({ type: LearnerSubjectDto, isArray: true })
+  catalog(@ActiveUser() user: IActiveUserData) {
+    return this.assessmentTestService.catalog(user.sub);
+  }
+
+  @Get('learner/history')
+  @ApiOkResponse({ type: LearnerAttemptDto, isArray: true })
+  history(@ActiveUser() user: IActiveUserData) {
+    return this.assessmentTestService.history(user.sub);
+  }
+
+  @Get('attempts/:id/result')
+  @ApiOkResponse({ type: LearnerResultDto })
+  result(@Param('id') id: string, @ActiveUser() user: IActiveUserData) {
+    return this.assessmentTestService.result(id, user.sub);
+  }
+
+  @Patch('attempts/:id/answers')
+  @ApiOkResponse({ type: LearnerAttemptDto })
+  saveAnswers(
+    @Param('id') id: string,
+    @ActiveUser() user: IActiveUserData,
+    @Body() body: DraftAnswersDto
+  ) {
+    return this.assessmentTestService.saveAnswers(id, user.sub, body.answers);
   }
 
   @Get('user-asssessments')
@@ -129,7 +163,11 @@ export class AssessmentTestController {
   @ApiBody({ type: StartTestDto })
   @ApiCreatedResponse({ type: UserAssessmentTestDto })
   startTest(@ActiveUser() user: IActiveUserData, @Body() body: StartTestDto) {
-    return this.assessmentTestService.startTest(body.subject, user.sub);
+    return this.assessmentTestService.startTest(
+      body.subject,
+      user.sub,
+      body.assessmentTestId
+    );
   }
 
   @Post('submit-test')

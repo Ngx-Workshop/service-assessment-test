@@ -248,13 +248,11 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
   });
   it('serializes concurrent starts and submissions and recovers an expired lease', async () => {
     await api('post').send(definition()).expect(201);
-    await db
-      .collection('assessment_write_leases')
-      .insertOne({
-        _id: 'assessment-writes' as any,
-        owner: 'crashed',
-        expires: new Date(0),
-      });
+    await db.collection('assessment_write_leases').insertOne({
+      _id: 'assessment-writes' as any,
+      owner: 'crashed',
+      expires: new Date(0),
+    });
     const starts = await Promise.all(
       Array.from({ length: 6 }, () =>
         api('post', '/start-test', 'learner').send({ subject: 'ANGULAR' })
@@ -281,5 +279,108 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
     );
     expect(submissions.filter((r) => r.status === 200)).toHaveLength(1);
     expect(submissions.filter((r) => r.status === 409)).toHaveLength(2);
+  });
+  it('exposes safe catalogs, exact eligible starts, persisted drafts and completed-only owned feedback', async () => {
+    const first = (await api('post').send(definition()).expect(201)).body;
+    const second = (
+      await api('post')
+        .send({ ...definition(), name: 'Next level', level: 2 })
+        .expect(201)
+    ).body;
+    await api('post')
+      .send({ ...definition(), subject: 'RXJS', level: 2 })
+      .expect(201);
+    await api('get', '/learner/catalog', 'none').expect(401);
+    let catalog = (await api('get', '/learner/catalog', 'learner').expect(200))
+      .body;
+    expect(catalog).toHaveLength(3);
+    expect(catalog[0].tests.map((t) => t.status)).toEqual([
+      'available',
+      'locked',
+    ]);
+    expect(catalog[2].tests[0].status).toBe('locked');
+    expect(JSON.stringify(catalog)).not.toMatch(
+      /correctResponse|incorrectResponse|"answer"|Select A/
+    );
+    await api('post', '/start-test', 'learner')
+      .send({ subject: 'ANGULAR', assessmentTestId: second._id })
+      .expect(409);
+    const attempt = (
+      await api('post', '/start-test', 'learner')
+        .send({ subject: 'ANGULAR', assessmentTestId: first._id })
+        .expect(201)
+    ).body;
+    await api('get', `/attempts/${attempt._id}/result`, 'learner').expect(409);
+    await api('patch', `/attempts/${attempt._id}/answers`, 'other')
+      .send({ answers: ['A'] })
+      .expect(404);
+    for (const answers of [[], ['C'], ['A', 'B']])
+      await api('patch', `/attempts/${attempt._id}/answers`, 'learner')
+        .send({ answers })
+        .expect(400);
+    await api('patch', `/attempts/${attempt._id}/answers`, 'learner')
+      .send({ answers: [''] })
+      .expect(200);
+    await api('patch', `/attempts/${attempt._id}/answers`, 'learner')
+      .send({ answers: ['B'] })
+      .expect(200);
+    let history = (await api('get', '/learner/history', 'learner').expect(200))
+      .body;
+    expect(history[0].draftAnswers).toEqual(['B']);
+    expect(history[0].questionCount).toBe(1);
+    expect(history[0].level).toBe(1);
+    expect(
+      (await api('get', '/learner/history', 'other').expect(200)).body
+    ).toEqual([]);
+    catalog = (await api('get', '/learner/catalog', 'learner').expect(200))
+      .body;
+    expect(catalog[0].tests[0].status).toBe('in-progress');
+    await api('post', '/submit-test', 'learner')
+      .send({ testId: attempt._id, answers: ['B'] })
+      .expect(200);
+    await api('patch', `/attempts/${attempt._id}/answers`, 'learner')
+      .send({ answers: ['A'] })
+      .expect(409);
+    await api('get', `/attempts/${attempt._id}/result`, 'other').expect(404);
+    const result = (
+      await api('get', `/attempts/${attempt._id}/result`, 'learner').expect(200)
+    ).body;
+    expect(result.questions[0]).toEqual({
+      question: 'Select A',
+      selectedAnswer: 'B',
+      correctAnswer: 'A',
+      correct: false,
+      feedback: 'Try again',
+    });
+    expect(result.attempt.draftAnswers).toEqual([]);
+    catalog = (await api('get', '/learner/catalog', 'learner').expect(200))
+      .body;
+    expect(catalog[0]).toMatchObject({
+      completedCount: 1,
+      passedCount: 0,
+      highestPassedLevel: 0,
+      accuracy: 0,
+    });
+    expect(catalog[0].tests[1].status).toBe('available');
+    const next = (
+      await api('post', '/start-test', 'learner')
+        .send({ subject: 'ANGULAR', assessmentTestId: second._id })
+        .expect(201)
+    ).body;
+    await api('post', '/submit-test', 'learner')
+      .send({ testId: next._id, answers: ['A'] })
+      .expect(200);
+    expect(
+      (await api('get', '/learner/catalog', 'learner').expect(200)).body[0]
+    ).toMatchObject({
+      completedCount: 2,
+      passedCount: 1,
+      highestPassedLevel: 2,
+      accuracy: 50,
+    });
+    expect(
+      (await api('get', `/attempts/${next._id}/result`, 'learner').expect(200))
+        .body.questions[0].feedback
+    ).toBe('Correct');
   });
 });

@@ -23,7 +23,8 @@
     "contracts:service-nestjs-assessment-test:gen": "npm --prefix ./contracts/service-nestjs-assessment-test run gen",
     "contracts:service-nestjs-assessment-test:build": "npm --prefix ./contracts/service-nestjs-assessment-test run build",
     "contracts:service-nestjs-assessment-test:publish": "npm --prefix ./contracts/service-nestjs-assessment-test publish --access public",
-    "start:local": "ASSESSMENT_LOCAL_DEV=true NODE_ENV=development MONGODB_URI=mongodb://127.0.0.1:27017/assessment_test_local PORT=3005 nest start --watch"
+    "start:local": "ASSESSMENT_LOCAL_DEV=true NODE_ENV=development MONGODB_URI=mongodb://127.0.0.1:27017/assessment_test_local PORT=3005 nest start --watch",
+    "preview:learner": "ts-node test/learner-preview.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

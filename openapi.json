@@ -105,6 +105,124 @@
         ]
       }
     },
+    "/assessment-test/learner/catalog": {
+      "get": {
+        "operationId": "AssessmentTestController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LearnerSubjectDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/learner/history": {
+      "get": {
+        "operationId": "AssessmentTestController_history",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LearnerAttemptDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/attempts/{id}/result": {
+      "get": {
+        "operationId": "AssessmentTestController_result",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerResultDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
+    "/assessment-test/attempts/{id}/answers": {
+      "patch": {
+        "operationId": "AssessmentTestController_saveAnswers",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftAnswersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerAttemptDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Assessment Tests"
+        ]
+      }
+    },
     "/assessment-test/user-asssessments": {
       "get": {
         "operationId": "AssessmentTestController_fetchUsersAssessments",
@@ -609,6 +727,223 @@
           "__v"
         ]
       },
+      "LearnerTestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "number"
+          },
+          "questionCount": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "in-progress",
+              "completed",
+              "locked"
+            ]
+          },
+          "attemptId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "level",
+          "questionCount",
+          "status",
+          "attemptId"
+        ]
+      },
+      "LearnerSubjectDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearnerTestDto"
+            }
+          },
+          "completedCount": {
+            "type": "number"
+          },
+          "passedCount": {
+            "type": "number"
+          },
+          "highestPassedLevel": {
+            "type": "number"
+          },
+          "accuracy": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "subject",
+          "tests",
+          "completedCount",
+          "passedCount",
+          "highestPassedLevel",
+          "accuracy"
+        ]
+      },
+      "LearnerAttemptDto": {
+        "type": "object",
+        "properties": {
+          "assessmentTestId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Canonical owner; legacy records may only have uuid"
+          },
+          "_id": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "subject": {
+            "type": "string",
+            "enum": [
+              "ANGULAR",
+              "NESTJS",
+              "RXJS"
+            ]
+          },
+          "userAnswers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "__v": {
+            "type": "number"
+          },
+          "level": {
+            "type": "number"
+          },
+          "questionCount": {
+            "type": "number"
+          },
+          "draftAnswers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "assessmentTestId",
+          "_id",
+          "uuid",
+          "testName",
+          "score",
+          "subject",
+          "userAnswers",
+          "passed",
+          "completed",
+          "lastUpdated",
+          "__v",
+          "level",
+          "questionCount",
+          "draftAnswers"
+        ]
+      },
+      "ResultQuestionDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "selectedAnswer": {
+            "type": "string"
+          },
+          "correctAnswer": {
+            "type": "string"
+          },
+          "correct": {
+            "type": "boolean"
+          },
+          "feedback": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "selectedAnswer",
+          "correctAnswer",
+          "correct",
+          "feedback"
+        ]
+      },
+      "LearnerResultDto": {
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/LearnerAttemptDto"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultQuestionDto"
+            }
+          }
+        },
+        "required": [
+          "attempt",
+          "questions"
+        ]
+      },
+      "DraftAnswersDto": {
+        "type": "object",
+        "properties": {
+          "answers": {
+            "description": "One slot per question; empty string means unanswered",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "answers"
+        ]
+      },
       "UserAssessmentTestDto": {
         "type": "object",
         "properties": {
@@ -711,6 +1046,9 @@
               "NESTJS",
               "RXJS"
             ]
+          },
+          "assessmentTestId": {
+            "type": "string"
           }
         },
         "required": [

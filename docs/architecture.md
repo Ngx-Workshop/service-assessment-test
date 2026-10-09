@@ -65,3 +65,17 @@ also uses an atomic conditional update on owner and `completed:false`.
 The unwired legacy attempt CRUD helper remains unused. No other service's collections
 are accessed. Production release must coordinate the updated admin consumer and
 verify gateway forwarding for the added DELETE and learner questions routes.
+
+## Learner journey additions (2026-10-09)
+See [002 learner journey](../specs/002-learner-journey/spec.md). All new routes require authentication and use the canonical/legacy owner filter:
+
+| Route | Payload/access |
+| --- | --- |
+| GET `learner/catalog` | Supported subjects, answer-free definition metadata, eligibility status, highest passed level and weighted accuracy |
+| GET `learner/history` | Owner's attempts, newest first, enriched with level/question count/draft answers; orphan legacy metadata is explicitly 0/unavailable |
+| PATCH `attempts/:id/answers` | Owner of an unfinished attempt; complete slot array with valid choices or empty strings; lease-serialized and atomic completed:false filter |
+| GET `attempts/:id/result` | Completed owner only; persisted grade and selected/correct answers plus author feedback; unfinished returns 409 |
+
+POST start-test accepts optional assessmentTestId and rejects a stale/ineligible selection rather than silently starting a different test. Older callers omitting it retain existing behavior. New draftAnswers storage defaults to []; completion clears it. No identity migration, pass threshold, retry or progression change. Definitions remain immutable once used. Duplicate level definitions do not become eligible in the catalog.
+
+Contracts 0.0.19 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/* and attempts/* with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.

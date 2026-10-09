@@ -28,6 +28,9 @@ export class UserAssessmentTest {
   @Prop({ default: () => [] })
   userAnswers: string[];
 
+  @Prop({ type: [String], default: () => [] })
+  draftAnswers: string[];
+
   @Prop({ default: false })
   passed: boolean;
 

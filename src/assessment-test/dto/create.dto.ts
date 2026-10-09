@@ -211,6 +211,11 @@ export class StartTestDto {
   @ApiProperty({ enum: TestSubjectEnum })
   @IsEnum(TestSubjectEnum)
   subject: TestSubjectEnum;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  assessmentTestId?: string;
 }
 
 export class UserSubjectsEligibilityQueryDto {

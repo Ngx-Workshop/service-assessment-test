@@ -1,6 +1,6 @@
 {
   "name": "@tmdjr/service-nestjs-assessment-test-contracts",
-  "version": "0.0.1",
+  "version": "0.0.19",
   "description": "Types & runtime enums generated from NGX service-nestjs-assessment-test spec",
   "license": "MIT",
   "private": false,

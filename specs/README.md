@@ -7,7 +7,7 @@ active. Keep completed records for compatibility decisions and rationale.
 
 | Feature | Status | Spec | Plan | Tasks | Handoff |
 | --- | --- | --- | --- | --- | --- |
-| No assessment implementation feature specified yet | — | — | — | — | — |
+
 
 The documentation migration and source review are complete; see
 [assessment readiness and handoff](../docs/assessment-readiness.md). That review
@@ -15,3 +15,5 @@ records current behavior and future decisions, not approval to implement every
 finding. No Coding Labs history or seed example feature specs were copied here.
 
 - [001 Reliable authoring](001-reliable-authoring/spec.md) — Implemented and locally verified; production release pending.
+
+- [002 Learner journey](002-learner-journey/spec.md) — Implemented; deployment and live integration pending.

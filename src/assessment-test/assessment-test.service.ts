@@ -12,6 +12,7 @@ import {
   CreateAssessmentTestDto,
   UpdateAssessmentTestDto,
 } from './dto/definition.dto';
+import { LearnerSubjectDto } from './dto/learner.dto';
 import {
   AssessmentTest,
   AssessmentTestDocument,
@@ -191,14 +192,23 @@ export class AssessmentTestService {
       };
     });
   }
-  async startTest(subject: string, userId: string) {
+  async startTest(subject: string, userId: string, assessmentTestId?: string) {
     return this.write(async () => {
       const attempts = await this.attempts
         .find({ ...this.owner(userId), subject })
         .maxTimeMS(5000)
         .exec();
       const incomplete = attempts.find((t) => !t.completed);
-      if (incomplete) return incomplete;
+      if (incomplete) {
+        if (
+          assessmentTestId &&
+          incomplete.assessmentTestId !== assessmentTestId
+        )
+          throw new ConflictException(
+            'Resume your in-progress assessment first'
+          );
+        return incomplete;
+      }
       const candidates = await this.definitions
         .find({ subject, level: attempts.length + 1 })
         .limit(2)
@@ -213,6 +223,10 @@ export class AssessmentTestService {
           'Duplicate subject levels must be resolved by an administrator'
         );
       const definition = candidates[0];
+      if (assessmentTestId && String(definition._id) !== assessmentTestId)
+        throw new ConflictException(
+          'This assessment is no longer eligible. Refresh the subject.'
+        );
       return new this.attempts({
         assessmentTestId: String(definition._id),
         testName: definition.name,
@@ -240,6 +254,162 @@ export class AssessmentTestService {
         question,
         choices,
       })),
+    };
+  }
+  private enriched(
+    attempt: UserAssessmentTestDocument,
+    definition: AssessmentTestDocument
+  ) {
+    return {
+      ...attempt.toObject(),
+      level: definition.level,
+      questionCount: definition.testQuestions.length,
+      draftAnswers: attempt.draftAnswers ?? [],
+    };
+  }
+  async history(userId: string) {
+    const attempts = await this.attempts
+      .find(this.owner(userId))
+      .sort({ lastUpdated: -1 })
+      .maxTimeMS(5000)
+      .exec();
+    const definitions = await this.definitions
+      .find({ _id: { $in: attempts.map((t) => t.assessmentTestId) } })
+      .maxTimeMS(5000)
+      .exec();
+    return attempts.map((attempt) => {
+      const definition = definitions.find(
+        (d) => String(d._id) === attempt.assessmentTestId
+      );
+      // Legacy orphan records remain visible with explicitly unavailable metadata.
+      return definition
+        ? this.enriched(attempt, definition)
+        : {
+            ...attempt.toObject(),
+            level: 0,
+            questionCount: 0,
+            draftAnswers: attempt.draftAnswers ?? [],
+          };
+    });
+  }
+  async catalog(userId: string): Promise<LearnerSubjectDto[]> {
+    const [attempts, definitions] = await Promise.all([
+      this.attempts.find(this.owner(userId)).maxTimeMS(5000).exec(),
+      this.definitions.find().sort({ level: 1 }).maxTimeMS(5000).exec(),
+    ]);
+    return Object.values(TestSubjectEnum).map((subject) => {
+      const owned = attempts.filter((t) => t.subject === subject);
+      const completed = owned.filter((t) => t.completed);
+      const passed = completed.filter((t) => t.passed);
+      const incomplete = owned.find((t) => !t.completed);
+      const tests = definitions
+        .filter((d) => d.subject === subject)
+        .map((d) => {
+          const matches = owned.filter(
+            (t) => t.assessmentTestId === String(d._id)
+          );
+          const attempt =
+            matches.find((t) => !t.completed) ??
+            matches.find((t) => t.completed);
+          const uniqueLevel =
+            definitions.filter(
+              (other) => other.subject === subject && other.level === d.level
+            ).length === 1;
+          const status = attempt
+            ? attempt.completed
+              ? 'completed'
+              : 'in-progress'
+            : !incomplete && uniqueLevel && d.level === completed.length + 1
+              ? 'available'
+              : 'locked';
+          return {
+            id: String(d._id),
+            name: d.name,
+            level: d.level,
+            questionCount: d.testQuestions.length,
+            status,
+            attemptId: attempt ? String(attempt._id) : null,
+          } as const;
+        });
+      const graded = completed.filter((t) =>
+        tests.some((d) => d.id === t.assessmentTestId)
+      );
+      const total = graded.reduce(
+        (sum, t) =>
+          sum +
+          (tests.find((d) => d.id === t.assessmentTestId)?.questionCount ?? 0),
+        0
+      );
+      return {
+        subject,
+        tests,
+        completedCount: completed.length,
+        passedCount: passed.length,
+        highestPassedLevel: Math.max(
+          0,
+          ...passed.map(
+            (t) => tests.find((d) => d.id === t.assessmentTestId)?.level ?? 0
+          )
+        ),
+        accuracy: total
+          ? Math.round(
+              (100 * graded.reduce((sum, t) => sum + t.score, 0)) / total
+            )
+          : null,
+      };
+    });
+  }
+  async saveAnswers(id: string, userId: string, answers: string[]) {
+    return this.write(async () => {
+      const attempt = await this.ownedAttempt(id, userId);
+      if (attempt.completed)
+        throw new ConflictException('Assessment attempt already completed');
+      const definition = await this.fetchAssessmentTest(
+        attempt.assessmentTestId
+      );
+      if (
+        answers.length !== definition.testQuestions.length ||
+        answers.some(
+          (a, i) =>
+            a !== '' &&
+            !definition.testQuestions[i].choices.some((c) => c.value === a)
+        )
+      )
+        throw new BadRequestException(
+          'Provide a valid choice or an empty slot for every question'
+        );
+      const updated = await this.attempts
+        .findOneAndUpdate(
+          { _id: id, ...this.owner(userId), completed: false },
+          { $set: { draftAnswers: answers, lastUpdated: new Date() } },
+          { new: true, runValidators: true }
+        )
+        .maxTimeMS(5000)
+        .exec();
+      if (!updated)
+        throw new ConflictException('Assessment attempt already completed');
+      return this.enriched(updated, definition);
+    });
+  }
+  async result(id: string, userId: string) {
+    const attempt = await this.ownedAttempt(id, userId);
+    if (!attempt.completed)
+      throw new ConflictException(
+        'Complete the assessment before viewing feedback'
+      );
+    const definition = await this.fetchAssessmentTest(attempt.assessmentTestId);
+    return {
+      attempt: this.enriched(attempt, definition),
+      questions: definition.testQuestions.map((q, i) => {
+        const correct = attempt.userAnswers[i] === q.answer;
+        return {
+          question: q.question,
+          selectedAnswer: attempt.userAnswers[i] ?? '',
+          correctAnswer: q.answer,
+          correct,
+          feedback: correct ? q.correctResponse : q.incorrectResponse,
+        };
+      }),
     };
   }
   async submitTest(id: string, answers: string[], userId: string) {
@@ -272,6 +442,7 @@ export class AssessmentTestService {
               score,
               passed: score === answers.length,
               userAnswers: answers,
+              draftAnswers: [],
               lastUpdated: new Date(),
             },
           },
