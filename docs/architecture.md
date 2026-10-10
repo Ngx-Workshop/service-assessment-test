@@ -71,11 +71,35 @@ See [002 learner journey](../specs/002-learner-journey/spec.md). All new routes 
 
 | Route | Payload/access |
 | --- | --- |
-| GET `learner/catalog` | Supported subjects, answer-free definition metadata, eligibility status, highest passed level and weighted accuracy |
+| GET `learner/catalog` | Subjects present in definitions/attempts, answer-free definition metadata, eligibility status, highest passed level and weighted accuracy |
 | GET `learner/history` | Owner's attempts, newest first, enriched with level/question count/draft answers; orphan legacy metadata is explicitly 0/unavailable |
 | PATCH `attempts/:id/answers` | Owner of an unfinished attempt; complete slot array with valid choices or empty strings; lease-serialized and atomic completed:false filter |
 | GET `attempts/:id/result` | Completed owner only; persisted grade and selected/correct answers plus author feedback; unfinished returns 409 |
 
 POST start-test accepts optional assessmentTestId and rejects a stale/ineligible selection rather than silently starting a different test. Older callers omitting it retain existing behavior. New draftAnswers storage defaults to []; completion clears it. No identity migration, pass threshold, retry or progression change. Definitions remain immutable once used. Duplicate level definitions do not become eligible in the catalog.
 
-Contracts 0.0.19 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/* and attempts/* with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.
+Contracts 0.0.20 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/* and attempts/* with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.
+
+## Document section subjects — 2026-10-09
+
+## Contract and rollout
+
+Definitions save `subject` as the document section `_id` and `sectionTitle` as
+its display title snapshot. New authoring reads document GET /navigation/sections
+(map wrapper); production /api/documents, development localhost:3007. New forms
+require selection. Existing subjects absent from the catalog retain their identity
+and remain editable; they are not silently reassigned by matching a title.
+
+Legacy persisted strings and attempts are unchanged. Missing display titles fall
+back to the old subject. Titles refresh from current document sections when the
+admin opens a definition, then save explicitly; used-definition protection still
+applies. No background title synchronization or bulk migration is performed.
+The service validates string shape, not section existence through a foreign DB.
+Duplicate levels, eligibility and starts compare IDs. Subjects with no definitions
+or attempts no longer create empty fixed-enum learner cards.
+
+Generated contract 0.0.20 is built locally and vendored in both consumers. Release
+owners deploy the service, publish/adopt the reviewed contract and release both
+consumers together before enabling new subjects. Verify real Admin creation,
+section load/error states and learner start/resume/history through hosted gateways.
+No publication, deployment or production data changes were performed here.

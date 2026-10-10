@@ -7,7 +7,6 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { TestSubjectEnum } from './dto/create.dto';
 import {
   CreateAssessmentTestDto,
   UpdateAssessmentTestDto,
@@ -111,7 +110,10 @@ export class AssessmentTestService {
     this.validateDefinition(input);
     return this.write(async () => {
       await this.available(input);
-      return new this.definitions(input).save({ wtimeout: 5000 });
+      return new this.definitions({
+        ...input,
+        sectionTitle: input.sectionTitle ?? input.subject,
+      }).save({ wtimeout: 5000 });
     });
   }
   fetch() {
@@ -132,14 +134,25 @@ export class AssessmentTestService {
   async update(input: UpdateAssessmentTestDto) {
     this.validateDefinition(input);
     return this.write(async () => {
-      await this.fetchAssessmentTest(input._id);
+      const existing = await this.fetchAssessmentTest(input._id);
       await this.unused(input._id);
       await this.available(input, input._id);
       const { _id, __v, ...fields } = input;
       const updated = await this.definitions
         .findOneAndUpdate(
           { _id, __v },
-          { $set: { ...fields, lastUpdated: new Date() }, $inc: { __v: 1 } },
+          {
+            $set: {
+              ...fields,
+              sectionTitle:
+                fields.sectionTitle ??
+                (existing.subject === fields.subject
+                  ? existing.sectionTitle || fields.subject
+                  : fields.subject),
+              lastUpdated: new Date(),
+            },
+            $inc: { __v: 1 },
+          },
           { new: true, runValidators: true }
         )
         .maxTimeMS(5000)
@@ -162,10 +175,7 @@ export class AssessmentTestService {
   fetchUsersAssessments(userId: string) {
     return this.attempts.find(this.owner(userId)).maxTimeMS(5000).exec();
   }
-  async fetchUserSubjectsEligibility(
-    userId: string,
-    subjects: TestSubjectEnum[]
-  ) {
+  async fetchUserSubjectsEligibility(userId: string, subjects: string[]) {
     const [attempts, definitions] = await Promise.all([
       this.attempts
         .find({ ...this.owner(userId), subject: { $in: subjects } })
@@ -182,6 +192,9 @@ export class AssessmentTestService {
       ).length;
       return {
         subject,
+        sectionTitle:
+          definitions.find((d) => d.subject === subject)?.sectionTitle ||
+          subject,
         levelCount: completed,
         totalCount: definitions.filter((t) => t.subject === subject).length,
         enabled:
@@ -233,6 +246,7 @@ export class AssessmentTestService {
         userId,
         uuid: userId,
         subject,
+        sectionTitle: definition.sectionTitle || subject,
       }).save({ wtimeout: 5000 });
     });
   }
@@ -262,6 +276,8 @@ export class AssessmentTestService {
   ) {
     return {
       ...attempt.toObject(),
+      sectionTitle:
+        attempt.sectionTitle || definition.sectionTitle || attempt.subject,
       level: definition.level,
       questionCount: definition.testQuestions.length,
       draftAnswers: attempt.draftAnswers ?? [],
@@ -286,6 +302,7 @@ export class AssessmentTestService {
         ? this.enriched(attempt, definition)
         : {
             ...attempt.toObject(),
+            sectionTitle: attempt.sectionTitle || attempt.subject,
             level: 0,
             questionCount: 0,
             draftAnswers: attempt.draftAnswers ?? [],
@@ -297,7 +314,13 @@ export class AssessmentTestService {
       this.attempts.find(this.owner(userId)).maxTimeMS(5000).exec(),
       this.definitions.find().sort({ level: 1 }).maxTimeMS(5000).exec(),
     ]);
-    return Object.values(TestSubjectEnum).map((subject) => {
+    const subjects = [
+      ...new Set([
+        ...definitions.map((d) => d.subject),
+        ...attempts.map((t) => t.subject),
+      ]),
+    ].sort();
+    return subjects.map((subject) => {
       const owned = attempts.filter((t) => t.subject === subject);
       const completed = owned.filter((t) => t.completed);
       const passed = completed.filter((t) => t.passed);
@@ -342,6 +365,10 @@ export class AssessmentTestService {
       );
       return {
         subject,
+        sectionTitle:
+          definitions.find((d) => d.subject === subject)?.sectionTitle ||
+          owned.find((t) => t.sectionTitle)?.sectionTitle ||
+          subject,
         tests,
         completedCount: completed.length,
         passedCount: passed.length,

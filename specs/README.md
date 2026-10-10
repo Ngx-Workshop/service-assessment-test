@@ -17,3 +17,5 @@ finding. No Coding Labs history or seed example feature specs were copied here.
 - [001 Reliable authoring](001-reliable-authoring/spec.md) — Implemented and locally verified; production release pending.
 
 - [002 Learner journey](002-learner-journey/spec.md) — Implemented; deployment and live integration pending.
+
+- [003 Document section subjects](003-document-section-subjects/spec.md) — Implemented; hosted integration pending.

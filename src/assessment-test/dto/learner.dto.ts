@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsString } from 'class-validator';
-import { TestSubjectEnum, UserAssessmentTestDto } from './create.dto';
+import { UserAssessmentTestDto } from './create.dto';
 
 export class DraftAnswersDto {
   @ApiProperty({
@@ -21,7 +21,8 @@ export class LearnerTestDto {
   @ApiProperty({ nullable: true, type: String }) attemptId: string | null;
 }
 export class LearnerSubjectDto {
-  @ApiProperty({ enum: TestSubjectEnum }) subject: TestSubjectEnum;
+  @ApiProperty() subject: string;
+  @ApiProperty() sectionTitle: string;
   @ApiProperty({ type: [LearnerTestDto] }) tests: LearnerTestDto[];
   @ApiProperty() completedCount: number;
   @ApiProperty() passedCount: number;

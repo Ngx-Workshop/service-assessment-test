@@ -82,6 +82,104 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
     await app?.close();
   });
 
+  it('round-trips section IDs/titles and keeps grouping stable across display renames', async () => {
+    const subject = '670000000000000000000001';
+    const input = { ...definition(), subject, sectionTitle: 'Rust' };
+    const created = (await api('post').send(input).expect(201)).body;
+    expect(created).toMatchObject({ subject, sectionTitle: 'Rust' });
+    const renamed = (
+      await api('patch')
+        .send({
+          ...input,
+          sectionTitle: 'Rust language',
+          _id: created._id,
+          __v: 0,
+        })
+        .expect(200)
+    ).body;
+    expect(renamed).toMatchObject({ subject, sectionTitle: 'Rust language' });
+    const legacyUpdate = (await api('patch').send({ ...definition(), subject, _id: created._id, __v: 1 }).expect(200)).body;
+    expect(legacyUpdate.sectionTitle).toBe('Rust language');
+
+    await api('post')
+      .send({ ...input, sectionTitle: 'Another title' })
+      .expect(409);
+    const sameTitle = (
+      await api('post')
+        .send({ ...input, subject: 'legacy-rust-key' })
+        .expect(201)
+    ).body;
+    expect(sameTitle.subject).toBe('legacy-rust-key');
+    expect(
+      (await api('get', `/${created._id}`).expect(200)).body.sectionTitle
+    ).toBe('Rust language');
+    const catalog = (
+      await api('get', '/learner/catalog', 'learner').expect(200)
+    ).body;
+    expect(catalog.find((s) => s.subject === subject)).toMatchObject({
+      sectionTitle: 'Rust language',
+    });
+    const eligibility = (
+      await api(
+        'get',
+        `/user-subjects-eligibility?subjects=${subject}`,
+        'learner'
+      ).expect(200)
+    ).body;
+    expect(eligibility[0]).toMatchObject({
+      subject,
+      sectionTitle: 'Rust language',
+      enabled: true,
+    });
+    const attempt = (
+      await api('post', '/start-test', 'learner')
+        .send({ subject, assessmentTestId: created._id })
+        .expect(201)
+    ).body;
+    expect(attempt).toMatchObject({ subject, sectionTitle: 'Rust language' });
+    await api('post', '/submit-test', 'learner')
+      .send({ testId: attempt._id, answers: ['A'] })
+      .expect(200);
+    const completed = (
+      await api('get', '/learner/catalog', 'learner').expect(200)
+    ).body;
+    expect(completed.find((s) => s.subject === subject)).toMatchObject({
+      completedCount: 1,
+      passedCount: 1,
+    });
+  });
+
+  it('rejects invalid section identifiers and titles before creating definitions', async () => {
+    for (const value of ['', '  ', null, 1, {}, [], 'x'.repeat(121)]) {
+      await api('post')
+        .send({ ...definition(), subject: value })
+        .expect(400);
+      await api('post')
+        .send({ ...definition(), subject: 'rust', sectionTitle: value })
+        .expect(400);
+    }
+    expect((await api('get').expect(200)).body).toEqual([]);
+  });
+
+  it('reads legacy subjects without changing stored identity or historical attempts', async () => {
+    const legacy = await db
+      .collection('assessmenttests')
+      .insertOne({ ...definition(), __v: 0 });
+    const read = (await api('get', `/${legacy.insertedId}`).expect(200)).body;
+    expect(read).toMatchObject({ subject: 'ANGULAR', sectionTitle: 'ANGULAR' });
+    const stored = await db
+      .collection('assessmenttests')
+      .findOne({ _id: legacy.insertedId });
+    expect(stored).not.toHaveProperty('sectionTitle');
+    expect(
+      (
+        await api('post', '/start-test', 'learner')
+          .send({ subject: 'ANGULAR' })
+          .expect(201)
+      ).body.subject
+    ).toBe('ANGULAR');
+  });
+
   it('creates, reads, updates with version checking, and deletes definitions', async () => {
     const created = (await api('post').send(definition()).expect(201)).body;
     expect(created.__v).toBe(0);
@@ -210,6 +308,7 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
       ).body[0]
     ).toEqual({
       subject: 'ANGULAR',
+      sectionTitle: 'ANGULAR',
       levelCount: 1,
       totalCount: 1,
       enabled: false,
@@ -293,12 +392,12 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
     await api('get', '/learner/catalog', 'none').expect(401);
     let catalog = (await api('get', '/learner/catalog', 'learner').expect(200))
       .body;
-    expect(catalog).toHaveLength(3);
+    expect(catalog).toHaveLength(2);
     expect(catalog[0].tests.map((t) => t.status)).toEqual([
       'available',
       'locked',
     ]);
-    expect(catalog[2].tests[0].status).toBe('locked');
+    expect(catalog[1].tests[0].status).toBe('locked');
     expect(JSON.stringify(catalog)).not.toMatch(
       /correctResponse|incorrectResponse|"answer"|Select A/
     );

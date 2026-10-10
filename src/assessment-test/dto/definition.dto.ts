@@ -1,9 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsEnum,
   IsInt,
   IsMongoId,
   IsNotEmpty,
@@ -11,11 +10,14 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
-import { TestSubjectEnum } from './create.dto';
+import { SectionId } from './subject.dto';
 
 const Trim = () =>
-  Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));
+  Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value
+  );
 
 export class ChoiceInputDto {
   @ApiProperty()
@@ -64,9 +66,22 @@ export class CreateAssessmentTestDto {
   @IsNotEmpty()
   @MaxLength(160)
   name: string;
-  @ApiProperty({ enum: TestSubjectEnum })
-  @IsEnum(TestSubjectEnum)
-  subject: TestSubjectEnum;
+  @ApiProperty({
+    description: 'Document section _id; legacy string keys are supported',
+  })
+  @SectionId()
+  subject: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Document sectionTitle display snapshot; legacy callers may omit it',
+  })
+  @Trim()
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  sectionTitle?: string;
   @ApiProperty({ minimum: 1, type: 'integer' })
   @IsInt()
   @Min(1)

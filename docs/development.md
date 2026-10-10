@@ -38,3 +38,15 @@ See the [handoff](../specs/001-reliable-authoring/handoff.md) for compatibility 
 The suite now has seven HTTP scenarios, including safe catalogs, exact eligibility, draft validation and persistence, cross-user denial, completed-only feedback, cleared drafts and weighted proficiency. All seven HTTP scenarios plus the three auth guard tests pass. Service/OpenAPI and contract builds pass.
 
 `npm run preview:learner` optionally serves the companion learner verification bundle from `../mfe-user-journey-assessment-test/dist/learner-verification` on localhost:4203. It seeds only synthetic records in a unique local `assessment_test_preview_<pid>` database and drops it on termination. It uses the real assessment module with a regular synthetic identity, not real platform auth. Bind is loopback only; this harness is never used by AppModule or production startup. Normal local development's guard/origin restrictions are unchanged.
+
+## Document section subject verification — 2026-10-09
+
+- PASS: 3 auth guard unit tests and 10 HTTP scenarios with real isolated MongoDB,
+  controllers/validation/roles and synthetic identity. The test database is dropped.
+  Covers Rust ID/title CRUD, title rename/legacy omitted title, duplicate ID-level,
+  identical titles with different IDs, arbitrary eligibility/start, invalid fields,
+  preserved legacy records and existing ownership/scoring/concurrency regressions.
+- PASS: service build/OpenAPI, contract generation/build, exact no-enum string
+  schema assertions and focused DTO/schema lint.
+
+See [subject handoff](../specs/003-document-section-subjects/handoff.md).

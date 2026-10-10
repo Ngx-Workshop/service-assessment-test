@@ -3,8 +3,6 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserAssessmentTestDocument = HydratedDocument<UserAssessmentTest>;
 
-type TestSubject = 'ANGULAR' | 'NESTJS' | 'RXJS';
-
 @Schema()
 export class UserAssessmentTest {
   @Prop({ index: true })
@@ -22,8 +20,11 @@ export class UserAssessmentTest {
   @Prop({ default: 0 })
   score: number;
 
-  @Prop({ default: () => 'ANGULAR' })
-  subject: TestSubject;
+  @Prop({ required: true, trim: true, maxlength: 120 })
+  subject: string;
+
+  @Prop({ default: '', trim: true, maxlength: 120 })
+  sectionTitle: string;
 
   @Prop({ default: () => [] })
   userAnswers: string[];
@@ -43,3 +44,13 @@ export class UserAssessmentTest {
 
 export const UserAssessmentTestSchema =
   SchemaFactory.createForClass(UserAssessmentTest);
+
+UserAssessmentTestSchema.set('toJSON', {
+  transform: (
+    _document,
+    result: { sectionTitle?: string; subject: string }
+  ) => {
+    result.sectionTitle = result.sectionTitle || result.subject;
+    return result;
+  },
+});

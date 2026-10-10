@@ -126,7 +126,7 @@ export class AssessmentTestController {
     required: true,
     type: String,
     isArray: true,
-    description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
+    description: 'CSV list of document section IDs or legacy subject keys',
   })
   @ApiOkResponse({ type: UserSubjectEligibilityDto, isArray: true })
   fetchUserSubjectsEligibility(
@@ -146,7 +146,7 @@ export class AssessmentTestController {
     required: true,
     type: String,
     isArray: true,
-    description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
+    description: 'CSV list of document section IDs or legacy subject keys',
   })
   @ApiOkResponse({ type: UserSubjectEligibilityDto, isArray: true })
   fetchAdminUserSubjectsEligibility(

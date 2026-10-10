@@ -1,3 +1,4 @@
+import { SectionId } from './subject.dto';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -5,24 +6,13 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsMongoId,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
-
-/**
- * Mirror of the `TestSubject` union in the Mongoose schema
- * (`ANGULAR` | `NESTJS` | `RXJS`). We declare an enum here to
- * support Swagger `enum` metadata and class-validator `IsEnum`.
- */
-export enum TestSubjectEnum {
-  ANGULAR = 'ANGULAR',
-  NESTJS = 'NESTJS',
-  RXJS = 'RXJS',
-}
 
 /**
  * READ/Response DTO for a single UserAssessmentTest
@@ -48,8 +38,15 @@ export class UserAssessmentTestDto {
   @ApiProperty()
   score: number;
 
-  @ApiProperty({ enum: TestSubjectEnum })
-  subject: TestSubjectEnum;
+  @ApiProperty({
+    description: 'Document section ID or preserved legacy subject key',
+  })
+  subject: string;
+
+  @ApiProperty({
+    description: 'Section display title; falls back to legacy subject',
+  })
+  sectionTitle: string;
 
   @ApiProperty({ type: [String] })
   userAnswers: string[];
@@ -92,10 +89,10 @@ export class CreateUserAssessmentTestDto {
   @IsOptional()
   score?: number; // defaults to 0 in schema
 
-  @ApiPropertyOptional({ enum: TestSubjectEnum })
-  @IsEnum(TestSubjectEnum)
+  @ApiPropertyOptional()
+  @SectionId()
   @IsOptional()
-  subject?: TestSubjectEnum; // defaults to 'ANGULAR' in schema
+  subject?: string;
 
   @ApiPropertyOptional({ type: [String] })
   @IsArray()
@@ -135,8 +132,15 @@ export class UpdateUserAssessmentTestDto extends PartialType(
 //   enabled: completedCount < totalCount,
 // }
 export class UserSubjectEligibilityDto {
-  @ApiProperty({ enum: TestSubjectEnum })
-  subject: TestSubjectEnum;
+  @ApiProperty({
+    description: 'Document section ID or preserved legacy subject key',
+  })
+  subject: string;
+
+  @ApiProperty({
+    description: 'Section display title; falls back to legacy subject',
+  })
+  sectionTitle: string;
 
   @ApiProperty()
   levelCount: number;
@@ -179,8 +183,15 @@ export class AssessmentTestDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty({ enum: TestSubjectEnum })
-  subject: TestSubjectEnum;
+  @ApiProperty({
+    description: 'Document section ID or preserved legacy subject key',
+  })
+  subject: string;
+
+  @ApiProperty({
+    description: 'Section display title; falls back to legacy subject',
+  })
+  sectionTitle: string;
 
   @ApiProperty()
   level: number;
@@ -208,9 +219,11 @@ export class SubmitTestDto {
 }
 
 export class StartTestDto {
-  @ApiProperty({ enum: TestSubjectEnum })
-  @IsEnum(TestSubjectEnum)
-  subject: TestSubjectEnum;
+  @ApiProperty({
+    description: 'Document section ID or preserved legacy subject key',
+  })
+  @SectionId()
+  subject: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -220,10 +233,9 @@ export class StartTestDto {
 
 export class UserSubjectsEligibilityQueryDto {
   @ApiProperty({
-    description: 'CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS',
-    enum: TestSubjectEnum,
+    description: 'CSV list of document section IDs or legacy subject keys',
     isArray: true,
-    example: 'ANGULAR,NESTJS',
+    example: 'angular,rust',
   })
   @Transform(({ value }) => {
     if (Array.isArray(value)) return value;
@@ -235,6 +247,8 @@ export class UserSubjectsEligibilityQueryDto {
   })
   @IsArray()
   @ArrayNotEmpty()
-  @IsEnum(TestSubjectEnum, { each: true })
-  subjects: TestSubjectEnum[];
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(120, { each: true })
+  subjects: string[];
 }

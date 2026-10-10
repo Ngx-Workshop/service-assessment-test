@@ -288,17 +288,12 @@
             "name": "subjects",
             "required": true,
             "in": "query",
-            "description": "CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS",
+            "description": "CSV list of document section IDs or legacy subject keys",
             "schema": {
-              "example": "ANGULAR,NESTJS",
+              "example": "angular,rust",
               "type": "array",
               "items": {
-                "type": "string",
-                "enum": [
-                  "ANGULAR",
-                  "NESTJS",
-                  "RXJS"
-                ]
+                "type": "string"
               }
             }
           }
@@ -339,17 +334,12 @@
             "name": "subjects",
             "required": true,
             "in": "query",
-            "description": "CSV list of subjects, e.g. ANGULAR,NESTJS,RXJS",
+            "description": "CSV list of document section IDs or legacy subject keys",
             "schema": {
-              "example": "ANGULAR,NESTJS",
+              "example": "angular,rust",
               "type": "array",
               "items": {
-                "type": "string",
-                "enum": [
-                  "ANGULAR",
-                  "NESTJS",
-                  "RXJS"
-                ]
+                "type": "string"
               }
             }
           }
@@ -577,11 +567,11 @@
           },
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section _id; legacy string keys are supported"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Document sectionTitle display snapshot; legacy callers may omit it"
           },
           "level": {
             "type": "integer",
@@ -653,11 +643,11 @@
           },
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section ID or preserved legacy subject key"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Section display title; falls back to legacy subject"
           },
           "level": {
             "type": "number"
@@ -680,6 +670,7 @@
           "_id",
           "name",
           "subject",
+          "sectionTitle",
           "level",
           "lastUpdated",
           "testQuestions",
@@ -694,11 +685,11 @@
           },
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section _id; legacy string keys are supported"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Document sectionTitle display snapshot; legacy callers may omit it"
           },
           "level": {
             "type": "integer",
@@ -769,12 +760,10 @@
         "type": "object",
         "properties": {
           "subject": {
-            "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "type": "string"
+          },
+          "sectionTitle": {
+            "type": "string"
           },
           "tests": {
             "type": "array",
@@ -798,6 +787,7 @@
         },
         "required": [
           "subject",
+          "sectionTitle",
           "tests",
           "completedCount",
           "passedCount",
@@ -829,11 +819,11 @@
           },
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section ID or preserved legacy subject key"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Section display title; falls back to legacy subject"
           },
           "userAnswers": {
             "type": "array",
@@ -874,6 +864,7 @@
           "testName",
           "score",
           "subject",
+          "sectionTitle",
           "userAnswers",
           "passed",
           "completed",
@@ -968,11 +959,11 @@
           },
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section ID or preserved legacy subject key"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Section display title; falls back to legacy subject"
           },
           "userAnswers": {
             "type": "array",
@@ -1001,6 +992,7 @@
           "testName",
           "score",
           "subject",
+          "sectionTitle",
           "userAnswers",
           "passed",
           "completed",
@@ -1013,11 +1005,11 @@
         "properties": {
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section ID or preserved legacy subject key"
+          },
+          "sectionTitle": {
+            "type": "string",
+            "description": "Section display title; falls back to legacy subject"
           },
           "levelCount": {
             "type": "number"
@@ -1031,6 +1023,7 @@
         },
         "required": [
           "subject",
+          "sectionTitle",
           "levelCount",
           "totalCount",
           "enabled"
@@ -1041,11 +1034,7 @@
         "properties": {
           "subject": {
             "type": "string",
-            "enum": [
-              "ANGULAR",
-              "NESTJS",
-              "RXJS"
-            ]
+            "description": "Document section ID or preserved legacy subject key"
           },
           "assessmentTestId": {
             "type": "string"
