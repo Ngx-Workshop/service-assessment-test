@@ -86,18 +86,33 @@ export class AssessmentTestService {
         );
     }
   }
-  private async available(input: CreateAssessmentTestDto, id?: string) {
-    const duplicate = await this.definitions
-      .exists({
-        subject: input.subject,
-        level: input.level,
-        ...(id ? { _id: { $ne: id } } : {}),
-      })
-      .maxTimeMS(5000);
-    if (duplicate)
-      throw new ConflictException(
-        'A test already exists for this subject and level'
-      );
+  // One completed test per consecutive level unlocks the next level. Completing
+  // sibling tests never skips a level; legacy orphan attempts cannot unlock one.
+  private unlockedLevel(
+    attempts: UserAssessmentTestDocument[],
+    definitions: AssessmentTestDocument[]
+  ) {
+    const completedIds = new Set(
+      attempts.filter((t) => t.completed).map((t) => t.assessmentTestId)
+    );
+    const completedLevels = new Set(
+      definitions
+        .filter((d) => completedIds.has(String(d._id)))
+        .map((d) => d.level)
+    );
+    let level = 1;
+    while (completedLevels.has(level)) level++;
+    return level;
+  }
+  private selectable(
+    definition: AssessmentTestDocument,
+    attempts: UserAssessmentTestDocument[],
+    unlockedLevel: number
+  ) {
+    return (
+      definition.level <= unlockedLevel &&
+      !attempts.some((t) => t.assessmentTestId === String(definition._id))
+    );
   }
   private async unused(id: string) {
     if (await this.attempts.exists({ assessmentTestId: id }).maxTimeMS(5000)) {
@@ -109,7 +124,6 @@ export class AssessmentTestService {
   async create(input: CreateAssessmentTestDto) {
     this.validateDefinition(input);
     return this.write(async () => {
-      await this.available(input);
       return new this.definitions({
         ...input,
         sectionTitle: input.sectionTitle ?? input.subject,
@@ -136,7 +150,6 @@ export class AssessmentTestService {
     return this.write(async () => {
       const existing = await this.fetchAssessmentTest(input._id);
       await this.unused(input._id);
-      await this.available(input, input._id);
       const { _id, __v, ...fields } = input;
       const updated = await this.definitions
         .findOneAndUpdate(
@@ -187,21 +200,19 @@ export class AssessmentTestService {
         .exec(),
     ]);
     return [...new Set(subjects)].map((subject) => {
-      const completed = attempts.filter(
-        (t) => t.subject === subject && t.completed
-      ).length;
+      const owned = attempts.filter((t) => t.subject === subject);
+      const tests = definitions.filter((d) => d.subject === subject);
+      const unlockedLevel = this.unlockedLevel(owned, tests);
       return {
         subject,
         sectionTitle:
           definitions.find((d) => d.subject === subject)?.sectionTitle ||
           subject,
-        levelCount: completed,
+        levelCount: unlockedLevel - 1,
         totalCount: definitions.filter((t) => t.subject === subject).length,
         enabled:
           attempts.some((t) => t.subject === subject && !t.completed) ||
-          definitions.some(
-            (t) => t.subject === subject && t.level === completed + 1
-          ),
+          tests.some((d) => this.selectable(d, owned, unlockedLevel)),
       };
     });
   }
@@ -222,24 +233,26 @@ export class AssessmentTestService {
           );
         return incomplete;
       }
-      const candidates = await this.definitions
-        .find({ subject, level: attempts.length + 1 })
-        .limit(2)
+      const definitions = await this.definitions
+        .find({ subject })
+        .sort({ level: 1, _id: 1 })
         .maxTimeMS(5000)
         .exec();
-      if (!candidates.length)
+      const unlockedLevel = this.unlockedLevel(attempts, definitions);
+      const candidates = definitions.filter((d) =>
+        this.selectable(d, attempts, unlockedLevel)
+      );
+      const definition = assessmentTestId
+        ? candidates.find((d) => String(d._id) === assessmentTestId)
+        : candidates[0];
+      if (!definition)
         throw new ConflictException(
-          'No next assessment is available for this subject'
+          assessmentTestId
+            ? 'This assessment is no longer eligible. Refresh the subject.'
+            : 'No next assessment is available for this subject'
         );
-      if (candidates.length > 1)
-        throw new ConflictException(
-          'Duplicate subject levels must be resolved by an administrator'
-        );
-      const definition = candidates[0];
-      if (assessmentTestId && String(definition._id) !== assessmentTestId)
-        throw new ConflictException(
-          'This assessment is no longer eligible. Refresh the subject.'
-        );
+      if (!assessmentTestId && candidates.length > 1)
+        throw new ConflictException('Select an assessment to start');
       return new this.attempts({
         assessmentTestId: String(definition._id),
         testName: definition.name,
@@ -312,7 +325,7 @@ export class AssessmentTestService {
   async catalog(userId: string): Promise<LearnerSubjectDto[]> {
     const [attempts, definitions] = await Promise.all([
       this.attempts.find(this.owner(userId)).maxTimeMS(5000).exec(),
-      this.definitions.find().sort({ level: 1 }).maxTimeMS(5000).exec(),
+      this.definitions.find().sort({ level: 1, _id: 1 }).maxTimeMS(5000).exec(),
     ]);
     const subjects = [
       ...new Set([
@@ -325,8 +338,9 @@ export class AssessmentTestService {
       const completed = owned.filter((t) => t.completed);
       const passed = completed.filter((t) => t.passed);
       const incomplete = owned.find((t) => !t.completed);
-      const tests = definitions
-        .filter((d) => d.subject === subject)
+      const subjectDefinitions = definitions.filter((d) => d.subject === subject);
+      const unlockedLevel = this.unlockedLevel(owned, subjectDefinitions);
+      const tests = subjectDefinitions
         .map((d) => {
           const matches = owned.filter(
             (t) => t.assessmentTestId === String(d._id)
@@ -334,15 +348,11 @@ export class AssessmentTestService {
           const attempt =
             matches.find((t) => !t.completed) ??
             matches.find((t) => t.completed);
-          const uniqueLevel =
-            definitions.filter(
-              (other) => other.subject === subject && other.level === d.level
-            ).length === 1;
           const status = attempt
             ? attempt.completed
               ? 'completed'
               : 'in-progress'
-            : !incomplete && uniqueLevel && d.level === completed.length + 1
+            : !incomplete && this.selectable(d, owned, unlockedLevel)
               ? 'available'
               : 'locked';
           return {

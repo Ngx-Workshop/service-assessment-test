@@ -47,3 +47,23 @@ No publication, deployment or production data changes were performed here.
 
 Local tasks are complete. X001 is hosted rollout/auth/gateway acceptance.
 Architecture/development and feature index document this contract and verification.
+
+## Existing-data migration — 2026-10-09
+
+At the user's explicit request, migrated the live workshop-viewer database through
+its authenticated mongosh session: 9 assessment definitions and 15 user attempts.
+ANGULAR → angular / Angular; NESTJS → nestjs / Nest JS; RXJS → rxjs / RxJS.
+Those are the actual section _ids/titles. Definition/attempt IDs, assessmentTestId,
+owner identity, questions/answers, scoring/completion flags and timestamps remained
+unchanged. Subject/title updates incremented __v. Backed up all 24 originals plus
+manifest in assessment_section_subject_backup_20261009 on the same server, and
+committed both collections in one majority-acknowledged snapshot transaction under
+the service write lease. Independent post-commit queries found no broken/mismatched
+references, no active lease, and zero remaining dry-run changes. Script syntax
+check passes. Initial top-level-await shell syntax errors made no database changes;
+loading the function and invoking it without top-level await succeeded.
+
+See [migration and recovery record](../../scripts/migrations/README.md).
+No package release, deployment, rollback or live application journey check was run
+as part of the migration. Existing data acceptance is complete; hosted rollout
+acceptance remains separately tracked.

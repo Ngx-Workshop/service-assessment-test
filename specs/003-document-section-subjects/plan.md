@@ -35,3 +35,14 @@ and production admin; check source organization.
 **Primary Dependencies**: Mongoose 8, class-validator, Swagger
 **Storage**: MongoDB assessment definitions/attempts
 **Project Type**: REST service and generated contracts
+
+## Authorized existing-data migration — 2026-10-09
+
+The user explicitly requested migrating existing assessment/user subjects in their
+server mongosh session. Map ANGULAR/NESTJS/RXJS to existing document section IDs
+angular/nestjs/rxjs and read sectionTitle from those records. Retain definition and
+attempt IDs and assessmentTestId references. Use server-side originals, a shared
+write lease, a snapshot transaction and conditional version updates. Reject
+missing mappings, collisions and broken references before mutation. No identity,
+answer, grading, timestamp or ownership changes. See the migration record in
+[scripts/migrations](../../scripts/migrations/README.md).

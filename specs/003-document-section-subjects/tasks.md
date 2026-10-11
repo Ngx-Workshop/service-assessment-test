@@ -10,3 +10,10 @@
 ## Verification evidence
 
 See [handoff.md](handoff.md) for test/build evidence and hosted release limits.
+
+- [x] T005: Audit production section mappings and assessment/attempt references.
+  Verified 9 definitions, 15 attempts; no canonical collisions or orphan references.
+- [x] T006: Back up and migrate both collections transactionally, retaining IDs,
+  assessmentTestId and all answers/scores. Majority commit, 24 backups, lease released.
+- [x] T007: Verify independent stored counts/reference consistency and idempotent
+  dry run (zero changes), retain script/recovery record. No rollback performed.

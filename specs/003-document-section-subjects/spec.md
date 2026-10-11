@@ -28,3 +28,14 @@ Legacy records/callers without sectionTitle fall back to subject; no bulk migrat
 Document service remains the source of authoring choices via API, not direct DB
 access. No section schema change, publication or deployment is required locally.
 Learner consumers must adopt arbitrary string IDs and display titles before release.
+
+## Authorized existing-data migration — 2026-10-09
+
+The user explicitly requested migrating existing assessment/user subjects in their
+server mongosh session. Map ANGULAR/NESTJS/RXJS to existing document section IDs
+angular/nestjs/rxjs and read sectionTitle from those records. Retain definition and
+attempt IDs and assessmentTestId references. Use server-side originals, a shared
+write lease, a snapshot transaction and conditional version updates. Reject
+missing mappings, collisions and broken references before mutation. No identity,
+answer, grading, timestamp or ownership changes. See the migration record in
+[scripts/migrations](../../scripts/migrations/README.md).

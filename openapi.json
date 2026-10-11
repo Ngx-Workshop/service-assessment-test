@@ -1012,7 +1012,8 @@
             "description": "Section display title; falls back to legacy subject"
           },
           "levelCount": {
-            "type": "number"
+            "type": "number",
+            "description": "Number of consecutive levels with at least one completed test"
           },
           "totalCount": {
             "type": "number"
@@ -1037,7 +1038,8 @@
             "description": "Document section ID or preserved legacy subject key"
           },
           "assessmentTestId": {
-            "type": "string"
+            "type": "string",
+            "description": "Selected definition ID; required when multiple tests are available"
           }
         },
         "required": [

@@ -103,7 +103,7 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
 
     await api('post')
       .send({ ...input, sectionTitle: 'Another title' })
-      .expect(409);
+      .expect(201);
     const sameTitle = (
       await api('post')
         .send({ ...input, subject: 'legacy-rust-key' })
@@ -200,7 +200,7 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
     await api('delete', `/${created._id}`).expect(404);
     await api('get', '/invalid').expect(400);
   });
-  it('rejects malformed nested data, stale answers, duplicates, whitespace, unknown fields and fractional levels', async () => {
+  it('rejects malformed nested data, stale answers, whitespace, unknown fields and fractional levels', async () => {
     for (const input of [
       { ...definition(), name: '   ' },
       { ...definition(), level: 1.5 },
@@ -232,7 +232,49 @@ describe('assessment HTTP with disposable Mongo and a fake identity provider', (
     ])
       await api('post').send(input).expect(400);
     await api('post').send(definition()).expect(201);
-    await api('post').send(definition()).expect(409);
+    await api('post').send(definition()).expect(201);
+  });
+  it('selects sibling tests by ID and advances by completed levels rather than attempt count', async () => {
+    const create = async (name: string, level: number, subject = 'ANGULAR') =>
+      (await api('post').send({ ...definition(), name, level, subject }).expect(201)).body;
+    const first = await create('First', 1);
+    const sibling = await create('Sibling', 1);
+    const second = await create('Second', 2);
+    const third = await create('Third', 3);
+    const foreign = await create('Foreign', 1, 'RXJS');
+    const catalog = async () => (await api('get', '/learner/catalog', 'learner').expect(200)).body.find(s => s.subject === 'ANGULAR');
+    const status = async (id: string) => (await catalog()).tests.find(t => t.id === id).status;
+    const start = (id?: string) => api('post', '/start-test', 'learner').send({ subject: 'ANGULAR', ...(id ? { assessmentTestId: id } : {}) });
+    expect(await status(first._id)).toBe('available');
+    expect(await status(sibling._id)).toBe('available');
+    expect(await status(second._id)).toBe('locked');
+    await start().expect(409);
+    await start(foreign._id).expect(409);
+    await start(second._id).expect(409);
+    const attempt = (await start(sibling._id).expect(201)).body;
+    expect(attempt.assessmentTestId).toBe(sibling._id);
+    expect((await start(sibling._id).expect(201)).body._id).toBe(attempt._id);
+    await start(first._id).expect(409);
+    expect(await status(first._id)).toBe('locked');
+    await api('post', '/submit-test', 'learner').send({ testId: attempt._id, answers: ['B'] }).expect(200);
+    expect(await status(first._id)).toBe('available');
+    expect(await status(second._id)).toBe('available');
+    await start(sibling._id).expect(409);
+    const extra = (await start(first._id).expect(201)).body;
+    await api('post', '/submit-test', 'learner').send({ testId: extra._id, answers: ['A'] }).expect(200);
+    expect(await status(third._id)).toBe('locked');
+    const eligibility = (await api('get', '/user-subjects-eligibility?subjects=ANGULAR', 'learner').expect(200)).body[0];
+    expect(eligibility).toMatchObject({ levelCount: 1, totalCount: 4, enabled: true });
+    const next = (await start(second._id).expect(201)).body;
+    await api('post', '/submit-test', 'learner').send({ testId: next._id, answers: ['A'] }).expect(200);
+    expect(await status(third._id)).toBe('available');
+    expect(await catalog()).toMatchObject({ completedCount: 3, passedCount: 2, highestPassedLevel: 2, accuracy: 67 });
+    // Updates can move unused definitions into an occupied level too.
+    await api('patch').send({ ...definition(), name: 'Third', level: 2, _id: third._id, __v: third.__v }).expect(200);
+    expect(await status(third._id)).toBe('available');
+    await db.collection('userassessmenttests').insertOne({ userId: 'orphan', uuid: 'orphan', subject: 'ANGULAR', assessmentTestId: '670000000000000000000099', completed: true });
+    const orphanCatalog = (await api('get', '/learner/catalog', 'orphan').expect(200)).body.find(s => s.subject === 'ANGULAR');
+    expect(orphanCatalog.tests.find(t => t.id === second._id).status).toBe('locked');
   });
   it('enforces authentication and admin roles on CRUD and other-user lookups', async () => {
     const created = (await api('post').send(definition()).expect(201)).body;

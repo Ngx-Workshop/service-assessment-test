@@ -142,7 +142,7 @@ export class UserSubjectEligibilityDto {
   })
   sectionTitle: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Number of consecutive levels with at least one completed test' })
   levelCount: number;
 
   @ApiProperty()
@@ -225,7 +225,9 @@ export class StartTestDto {
   @SectionId()
   subject: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Selected definition ID; required when multiple tests are available',
+  })
   @IsOptional()
   @IsMongoId()
   assessmentTestId?: string;

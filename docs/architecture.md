@@ -44,15 +44,18 @@ contracts export models plus paths/components/operations types.
 
 ## Persistence decisions
 
-Definitions must have a unique subject/level among service writes. Updates advance
+Definitions may share a subject/level. Learners select the definition ID. Updates advance
 `__v` and lastUpdated. A stale version returns 409. Definitions referenced by any
 attempt cannot be edited or deleted, preserving grading for both old and new attempts.
 There is no publication lifecycle, retry policy or snapshot migration.
 
-Progression remains completed-attempt count plus one, regardless of pass/fail. Passing
-still requires every answer to be correct. Eligibility now checks for an available
-next level or unfinished attempt, so missing levels do not advertise an unusable start.
-Legacy duplicate levels produce a conflict when starting; they are not silently repaired.
+Progression unlocks level 1 initially and advances after one completed test at each
+consecutive level, regardless of pass/fail. Other unattempted tests at unlocked
+levels remain available; extra completions at one level never skip a level. Orphan
+attempts cannot unlock levels. Passing still requires every answer correct.
+Catalog, subject eligibility and starts share this policy. One unfinished attempt
+per subject must be resumed before another starts. Starts without a definition ID
+return 409 when multiple eligible tests exist; single-candidate callers remain supported.
 
 Writes share a Mongo `assessment_write_leases` collection, serialized across instances
 through its unique `_id`. Contention returns retryable 409. The lease expires after
@@ -76,7 +79,7 @@ See [002 learner journey](../specs/002-learner-journey/spec.md). All new routes 
 | PATCH `attempts/:id/answers` | Owner of an unfinished attempt; complete slot array with valid choices or empty strings; lease-serialized and atomic completed:false filter |
 | GET `attempts/:id/result` | Completed owner only; persisted grade and selected/correct answers plus author feedback; unfinished returns 409 |
 
-POST start-test accepts optional assessmentTestId and rejects a stale/ineligible selection rather than silently starting a different test. Older callers omitting it retain existing behavior. New draftAnswers storage defaults to []; completion clears it. No identity migration, pass threshold, retry or progression change. Definitions remain immutable once used. Duplicate level definitions do not become eligible in the catalog.
+POST start-test accepts optional assessmentTestId and rejects a stale/ineligible selection rather than silently starting a different test. Older callers omitting it retain existing behavior. New draftAnswers storage defaults to []; completion clears it. No identity migration, pass threshold, retry or progression change. Definitions remain immutable once used. Multiple definitions at an unlocked level are independently eligible.
 
 Contracts 0.0.20 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/* and attempts/* with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.
 
@@ -95,7 +98,7 @@ back to the old subject. Titles refresh from current document sections when the
 admin opens a definition, then save explicitly; used-definition protection still
 applies. No background title synchronization or bulk migration is performed.
 The service validates string shape, not section existence through a foreign DB.
-Duplicate levels, eligibility and starts compare IDs. Subjects with no definitions
+Eligibility and starts compare definition and section IDs; levels may contain multiple tests. Subjects with no definitions
 or attempts no longer create empty fixed-enum learner cards.
 
 Generated contract 0.0.20 is built locally and vendored in both consumers. Release

@@ -50,3 +50,27 @@ The suite now has seven HTTP scenarios, including safe catalogs, exact eligibili
   schema assertions and focused DTO/schema lint.
 
 See [subject handoff](../specs/003-document-section-subjects/handoff.md).
+
+## Existing-data migration — 2026-10-09
+
+At the user's explicit request, migrated the live workshop-viewer database through
+its authenticated mongosh session: 9 assessment definitions and 15 user attempts.
+ANGULAR → angular / Angular; NESTJS → nestjs / Nest JS; RXJS → rxjs / RxJS.
+Those are the actual section _ids/titles. Definition/attempt IDs, assessmentTestId,
+owner identity, questions/answers, scoring/completion flags and timestamps remained
+unchanged. Subject/title updates incremented __v. Backed up all 24 originals plus
+manifest in assessment_section_subject_backup_20261009 on the same server, and
+committed both collections in one majority-acknowledged snapshot transaction under
+the service write lease. Independent post-commit queries found no broken/mismatched
+references, no active lease, and zero remaining dry-run changes. Script syntax
+check passes. Initial top-level-await shell syntax errors made no database changes;
+loading the function and invoking it without top-level await succeeded.
+
+See [migration and recovery record](../scripts/migrations/README.md).
+No package release, deployment, rollback or live application journey check was run
+as part of the migration. Existing data acceptance is complete; hosted rollout
+acceptance remains separately tracked.
+
+## Multiple tests per level — 2026-10-11
+
+11 real disposable-Mongo HTTP scenarios, 3 auth guard tests, service/OpenAPI build and contract generation/build passed. See [handoff](../specs/004-multiple-tests-per-level/handoff.md). No production deployment or data writes.

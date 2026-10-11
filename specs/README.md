@@ -19,3 +19,5 @@ finding. No Coding Labs history or seed example feature specs were copied here.
 - [002 Learner journey](002-learner-journey/spec.md) — Implemented; deployment and live integration pending.
 
 - [003 Document section subjects](003-document-section-subjects/spec.md) — Implemented; hosted integration pending.
+
+- [004-multiple-tests-per-level](004-multiple-tests-per-level/spec.md) — Implemented; hosted integration pending.
