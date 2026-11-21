@@ -23,3 +23,5 @@ finding. No Coding Labs history or seed example feature specs were copied here.
 - [004-multiple-tests-per-level](004-multiple-tests-per-level/spec.md) — Implemented; hosted integration pending.
 
 - [005-deployment-cleanup](005-deployment-cleanup/spec.md): Deployment cleanup; implemented and locally verified.
+
+- [006-service-observability](006-service-observability/spec.md): Implemented and locally verified; Grafana ingestion authorization pending.

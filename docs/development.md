@@ -78,3 +78,7 @@ acceptance remains separately tracked.
 ## Deployment storage policy
 
 See [deployment cleanup](deployment-cleanup.md) for success-only image/container retention and local verification.
+
+## Service observability
+
+See [logging and heartbeat](observability.md) for operational endpoint semantics, JSON logging, collector ownership and actual validation.

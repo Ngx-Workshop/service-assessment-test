@@ -223,7 +223,7 @@ jobs:
               --name service-nestjs-assessment-test \
               --env-file .env \
               --network ngx-net \
-              --restart unless-stopped \
+              --restart unless-stopped --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 \
               -p 3005:3005 \
               service-nestjs-assessment-test
 

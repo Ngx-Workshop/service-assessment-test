@@ -1,3 +1,4 @@
+import { isHeartbeatContext } from '../observability/health.controller';
 import {
   CanActivate,
   ExecutionContext,
@@ -31,6 +32,7 @@ export function assertLocalDatabase() {
 export class AssessmentAuthGuard implements CanActivate {
   constructor(private readonly auth: AuthClientService) {}
   async canActivate(context: ExecutionContext) {
+    if (isHeartbeatContext(context)) return true;
     const request = context.switchToHttp().getRequest();
     if (localMode()) {
       assertLocalDatabase();

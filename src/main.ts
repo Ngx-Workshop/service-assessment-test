@@ -1,3 +1,7 @@
+import {
+  configureObservability,
+  createServiceLogger,
+} from './observability/observability';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
@@ -12,7 +16,10 @@ async function bootstrap() {
   if (process.env.GENERATE_OPENAPI === 'true')
     throw new Error('OpenAPI generation mode cannot serve HTTP');
   assertLocalDatabase();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: createServiceLogger(),
+  });
+  configureObservability(app);
   app.use(cookieParser());
   if (localMode()) app.enableCors({ origin: localOrigins, credentials: true });
   app.useGlobalPipes(
