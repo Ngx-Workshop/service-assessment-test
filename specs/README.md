@@ -21,3 +21,5 @@ finding. No Coding Labs history or seed example feature specs were copied here.
 - [003 Document section subjects](003-document-section-subjects/spec.md) — Implemented; hosted integration pending.
 
 - [004-multiple-tests-per-level](004-multiple-tests-per-level/spec.md) — Implemented; hosted integration pending.
+
+- [005-deployment-cleanup](005-deployment-cleanup/spec.md): Deployment cleanup; implemented and locally verified.

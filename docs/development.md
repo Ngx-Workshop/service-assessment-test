@@ -74,3 +74,7 @@ acceptance remains separately tracked.
 ## Multiple tests per level — 2026-10-11
 
 11 real disposable-Mongo HTTP scenarios, 3 auth guard tests, service/OpenAPI build and contract generation/build passed. See [handoff](../specs/004-multiple-tests-per-level/handoff.md). No production deployment or data writes.
+
+## Deployment storage policy
+
+See [deployment cleanup](deployment-cleanup.md) for success-only image/container retention and local verification.
