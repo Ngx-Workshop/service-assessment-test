@@ -117,3 +117,5 @@ owners deploy the service, publish/adopt the reviewed contract and release both
 consumers together before enabling new subjects. Verify real Admin creation,
 section load/error states and learner start/resume/history through hosted gateways.
 No publication, deployment or production data changes were performed here.
+
+Generated deployment orchestration is centrally managed by the Node CLI; see [deployment-workflows](deployment-workflows.md).

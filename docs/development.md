@@ -121,3 +121,5 @@ commits only inside temporary fixture repositories and removes those fixtures.
 
 See [maintenance evidence](../specs/007-code-maintenance/audit.md) for current
 commands, runtime versions, real Mongo regressions and infrastructure limitations.
+
+Deployment and npm publication now follow [deployment-workflows](deployment-workflows.md).
