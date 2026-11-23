@@ -9,6 +9,7 @@ import {
 import { AssessmentTestController } from './assessment-test.controller';
 import { AssessmentAuthGuard } from './assessment-auth.guard';
 import { AssessmentTestService } from './assessment-test.service';
+import { AssessmentWriteService } from './assessment-write.service';
 import {
   AssessmentTest,
   AssessmentTestSchema,
@@ -35,21 +36,21 @@ const ASSESSMENT_FAKE_PROVIDERS =
         {
           provide: getModelToken(AssessmentTest.name),
           useValue: {
-            find: () => ({ exec: async () => [] }),
-            findById: () => ({ exec: async () => null }),
-            findByIdAndUpdate: () => ({ exec: async () => null }),
-            findOne: () => ({ exec: async () => null }),
-            create: async () => ({}),
+            find: () => ({ exec: () => Promise.resolve([]) }),
+            findById: () => ({ exec: () => Promise.resolve(null) }),
+            findByIdAndUpdate: () => ({ exec: () => Promise.resolve(null) }),
+            findOne: () => ({ exec: () => Promise.resolve(null) }),
+            create: () => Promise.resolve({}),
           },
         },
         {
           provide: getModelToken(UserAssessmentTest.name),
           useValue: {
-            find: () => ({ exec: async () => [] }),
-            findById: () => ({ exec: async () => null }),
-            findByIdAndUpdate: () => ({ exec: async () => null }),
-            findOne: () => ({ exec: async () => null }),
-            create: async () => ({}),
+            find: () => ({ exec: () => Promise.resolve([]) }),
+            findById: () => ({ exec: () => Promise.resolve(null) }),
+            findByIdAndUpdate: () => ({ exec: () => Promise.resolve(null) }),
+            findOne: () => ({ exec: () => Promise.resolve(null) }),
+            create: () => Promise.resolve({}),
           },
         },
         {
@@ -65,6 +66,7 @@ const ASSESSMENT_FAKE_PROVIDERS =
   controllers: [AssessmentTestController],
   providers: [
     AssessmentTestService,
+    AssessmentWriteService,
     {
       provide: APP_GUARD,
       useClass: AssessmentAuthGuard,

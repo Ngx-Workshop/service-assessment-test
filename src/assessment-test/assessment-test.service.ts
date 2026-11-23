@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { randomUUID } from 'node:crypto';
+import { AssessmentWriteService } from './assessment-write.service';
 import {
   CreateAssessmentTestDto,
   UpdateAssessmentTestDto,
@@ -27,7 +27,8 @@ export class AssessmentTestService {
     @InjectModel(UserAssessmentTest.name)
     private attempts: Model<UserAssessmentTestDocument>,
     @InjectModel(AssessmentTest.name)
-    private definitions: Model<AssessmentTestDocument>
+    private definitions: Model<AssessmentTestDocument>,
+    private readonly writes: AssessmentWriteService
   ) {}
 
   private id(id: string) {
@@ -41,37 +42,6 @@ export class AssessmentTestService {
   }
   private owner(userId: string) {
     return { $or: [{ userId }, { userId: { $exists: false }, uuid: userId }] };
-  }
-  // Shared across instances. Every operation below has bounded database queries;
-  // a crashed writer's lease expires without modifying definitions or attempts.
-  private async write<T>(operation: () => Promise<T>): Promise<T> {
-    const leases = this.definitions.db.collection<{
-      _id: string;
-      owner: string;
-      expires: Date;
-    }>('assessment_write_leases');
-    const owner = randomUUID();
-    try {
-      await leases.findOneAndUpdate(
-        { _id: 'assessment-writes', expires: { $lte: new Date() } },
-        { $set: { owner, expires: new Date(Date.now() + 120_000) } },
-        { upsert: true, maxTimeMS: 5000 }
-      );
-    } catch (error) {
-      if (error?.code === 11000)
-        throw new ConflictException(
-          'Another assessment change is in progress. Please retry.'
-        );
-      throw error;
-    }
-    try {
-      return await operation();
-    } finally {
-      await leases.deleteOne(
-        { _id: 'assessment-writes', owner },
-        { maxTimeMS: 5000 }
-      );
-    }
   }
   private validateDefinition(input: CreateAssessmentTestDto) {
     for (const [i, question] of input.testQuestions.entries()) {
@@ -123,7 +93,7 @@ export class AssessmentTestService {
   }
   async create(input: CreateAssessmentTestDto) {
     this.validateDefinition(input);
-    return this.write(async () => {
+    return this.writes.run('create', async () => {
       return new this.definitions({
         ...input,
         sectionTitle: input.sectionTitle ?? input.subject,
@@ -147,7 +117,7 @@ export class AssessmentTestService {
   }
   async update(input: UpdateAssessmentTestDto) {
     this.validateDefinition(input);
-    return this.write(async () => {
+    return this.writes.run('update', async () => {
       const existing = await this.fetchAssessmentTest(input._id);
       await this.unused(input._id);
       const { _id, __v, ...fields } = input;
@@ -179,7 +149,7 @@ export class AssessmentTestService {
   }
   async delete(id: string) {
     this.id(id);
-    return this.write(async () => {
+    return this.writes.run('delete', async () => {
       await this.fetchAssessmentTest(id);
       await this.unused(id);
       await this.definitions.deleteOne({ _id: id }).maxTimeMS(5000).exec();
@@ -217,7 +187,7 @@ export class AssessmentTestService {
     });
   }
   async startTest(subject: string, userId: string, assessmentTestId?: string) {
-    return this.write(async () => {
+    return this.writes.run('start', async () => {
       const attempts = await this.attempts
         .find({ ...this.owner(userId), subject })
         .maxTimeMS(5000)
@@ -338,32 +308,32 @@ export class AssessmentTestService {
       const completed = owned.filter((t) => t.completed);
       const passed = completed.filter((t) => t.passed);
       const incomplete = owned.find((t) => !t.completed);
-      const subjectDefinitions = definitions.filter((d) => d.subject === subject);
+      const subjectDefinitions = definitions.filter(
+        (d) => d.subject === subject
+      );
       const unlockedLevel = this.unlockedLevel(owned, subjectDefinitions);
-      const tests = subjectDefinitions
-        .map((d) => {
-          const matches = owned.filter(
-            (t) => t.assessmentTestId === String(d._id)
-          );
-          const attempt =
-            matches.find((t) => !t.completed) ??
-            matches.find((t) => t.completed);
-          const status = attempt
-            ? attempt.completed
-              ? 'completed'
-              : 'in-progress'
-            : !incomplete && this.selectable(d, owned, unlockedLevel)
-              ? 'available'
-              : 'locked';
-          return {
-            id: String(d._id),
-            name: d.name,
-            level: d.level,
-            questionCount: d.testQuestions.length,
-            status,
-            attemptId: attempt ? String(attempt._id) : null,
-          } as const;
-        });
+      const tests = subjectDefinitions.map((d) => {
+        const matches = owned.filter(
+          (t) => t.assessmentTestId === String(d._id)
+        );
+        const attempt =
+          matches.find((t) => !t.completed) ?? matches.find((t) => t.completed);
+        const status = attempt
+          ? attempt.completed
+            ? 'completed'
+            : 'in-progress'
+          : !incomplete && this.selectable(d, owned, unlockedLevel)
+            ? 'available'
+            : 'locked';
+        return {
+          id: String(d._id),
+          name: d.name,
+          level: d.level,
+          questionCount: d.testQuestions.length,
+          status,
+          attemptId: attempt ? String(attempt._id) : null,
+        } as const;
+      });
       const graded = completed.filter((t) =>
         tests.some((d) => d.id === t.assessmentTestId)
       );
@@ -397,7 +367,7 @@ export class AssessmentTestService {
     });
   }
   async saveAnswers(id: string, userId: string, answers: string[]) {
-    return this.write(async () => {
+    return this.writes.run('save_answers', async () => {
       const attempt = await this.ownedAttempt(id, userId);
       if (attempt.completed)
         throw new ConflictException('Assessment attempt already completed');
@@ -450,7 +420,7 @@ export class AssessmentTestService {
     };
   }
   async submitTest(id: string, answers: string[], userId: string) {
-    return this.write(async () => {
+    return this.writes.run('submit', async () => {
       const attempt = await this.ownedAttempt(id, userId);
       if (attempt.completed)
         throw new ConflictException('Assessment attempt already completed');

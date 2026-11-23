@@ -2,15 +2,19 @@
 
 Use Node 22 and `npm ci`, matching CI. MongoDB is required for persistence integration.
 
-| Purpose | Command |
-| --- | --- |
-| Compile + generate OpenAPI without DB | `npm run build` |
-| Unit tests | `npm test -- --runInBand` |
-| Disposable Mongo HTTP tests | `npm run test:e2e -- --runInBand` |
-| Generate contracts | `npm run contracts:service-nestjs-assessment-test:gen` |
-| Build contracts | `npm run contracts:service-nestjs-assessment-test:build` |
-| Isolated local service | `npm run start:local` |
-| Normal configured watch | `npm run start:dev` |
+| Purpose                                   | Command                                                  |
+| ----------------------------------------- | -------------------------------------------------------- |
+| Compile + generate OpenAPI without DB     | `npm run build`                                          |
+| Unit tests                                | `npm test -- --runInBand`                                |
+| Non-mutating lint regression gate         | `npm run lint:check`                                     |
+| Strict lint (includes inherited failures) | `npm run lint:strict`                                    |
+| Non-mutating formatting gate              | `npm run format:check`                                   |
+| Disposable hook/install verification      | `node scripts/verify-maintenance.mjs`                    |
+| Disposable Mongo HTTP tests               | `npm run test:e2e -- --runInBand`                        |
+| Generate contracts                        | `npm run contracts:service-nestjs-assessment-test:gen`   |
+| Build contracts                           | `npm run contracts:service-nestjs-assessment-test:build` |
+| Isolated local service                    | `npm run start:local`                                    |
+| Normal configured watch                   | `npm run start:dev`                                      |
 
 `start:local` explicitly selects `mongodb://127.0.0.1:27017/assessment_test_local`,
 port 3005 and development mode, overriding any .env database. It binds only to loopback.
@@ -35,6 +39,7 @@ Production deployment and a real auth/gateway smoke test are separate release wo
 See the [handoff](../specs/001-reliable-authoring/handoff.md) for compatibility details.
 
 ## Learner journey verification
+
 The suite now has seven HTTP scenarios, including safe catalogs, exact eligibility, draft validation and persistence, cross-user denial, completed-only feedback, cleared drafts and weighted proficiency. All seven HTTP scenarios plus the three auth guard tests pass. Service/OpenAPI and contract builds pass.
 
 `npm run preview:learner` optionally serves the companion learner verification bundle from `../mfe-user-journey-assessment-test/dist/learner-verification` on localhost:4203. It seeds only synthetic records in a unique local `assessment_test_preview_<pid>` database and drops it on termination. It uses the real assessment module with a regular synthetic identity, not real platform auth. Bind is loopback only; this harness is never used by AppModule or production startup. Normal local development's guard/origin restrictions are unchanged.
@@ -56,9 +61,9 @@ See [subject handoff](../specs/003-document-section-subjects/handoff.md).
 At the user's explicit request, migrated the live workshop-viewer database through
 its authenticated mongosh session: 9 assessment definitions and 15 user attempts.
 ANGULAR → angular / Angular; NESTJS → nestjs / Nest JS; RXJS → rxjs / RxJS.
-Those are the actual section _ids/titles. Definition/attempt IDs, assessmentTestId,
+Those are the actual section \_ids/titles. Definition/attempt IDs, assessmentTestId,
 owner identity, questions/answers, scoring/completion flags and timestamps remained
-unchanged. Subject/title updates incremented __v. Backed up all 24 originals plus
+unchanged. Subject/title updates incremented \_\_v. Backed up all 24 originals plus
 manifest in assessment_section_subject_backup_20261009 on the same server, and
 committed both collections in one majority-acknowledged snapshot transaction under
 the service write lease. Independent post-commit queries found no broken/mismatched
@@ -82,3 +87,37 @@ See [deployment cleanup](deployment-cleanup.md) for success-only image/container
 ## Service observability
 
 See [logging and heartbeat](observability.md) for operational endpoint semantics, JSON logging, collector ownership and actual validation.
+
+## Maintenance quality workflow
+
+`npm ci` enables Husky in a Git developer checkout. The manifest's self-contained
+prepare lifecycle skips hook setup for CI, `HUSKY=0`, production/omitted dev
+dependencies and package-only/no-Git Docker installs; it does not skip dependency
+install scripts. There is no network fallback in the pre-commit hook. Husky runs
+project-local lint-staged/Prettier for staged TS/JS/JSON/Markdown/YAML files, retaining
+unstaged hunks. Generated contracts, OpenAPI, lockfiles and build/coverage output
+are excluded by `.prettierignore`. Prettier's existing style is unchanged.
+
+`format:check` covers source/tests and maintenance tooling/configuration, including
+both CI workflows. `.quality-baseline.json` exempts only exact unchanged hashes for
+the two inherited drifting files (`dto/create.dto.ts`, `test/app.e2e-spec.ts`).
+Changing either file requires formatting it; the pre-commit formatter has no hash
+exemptions. No blanket source rewrite was performed.
+
+`lint:check` runs the existing type-aware ESLint rules without fixes and fails on
+new per-file/rule error counts above the recorded baseline. Inherited diagnostics
+remain printed; this is not strict lint cleanliness. `lint:strict` still fails on
+226 inherited errors (25 warnings), primarily unsafe legacy test types and
+generation/bootstrap issues. Counts were reduced for repaired touched code, never
+raised to accept new failures. Remove/reduce baseline entries as debt is repaired;
+do not regenerate the baseline to conceal new errors. The ratchet cannot detect
+a replacement error with the same file/rule count; strict lint remains the goal.
+
+PR/main validation and the existing publishing job run these non-mutating gates,
+unit tests and build before publishing. The disposable verification script tests
+actual staged formatting, partial staging, generated-file exclusion, hook failure,
+negative CI gates and clean local/CI/package-only/production installs. It makes
+commits only inside temporary fixture repositories and removes those fixtures.
+
+See [maintenance evidence](../specs/007-code-maintenance/audit.md) for current
+commands, runtime versions, real Mongo regressions and infrastructure limitations.

@@ -1,0 +1,41 @@
+{
+  "lint": {
+    "src/app.module.ts": {
+      "@typescript-eslint/require-await": 1
+    },
+    "src/assessment-test/assessment-auth.guard.ts": {
+      "@typescript-eslint/no-unsafe-assignment": 1,
+      "@typescript-eslint/no-unsafe-member-access": 4
+    },
+    "src/assessment-test/dto/create.dto.ts": {
+      "prettier/prettier": 2,
+      "@typescript-eslint/no-unsafe-return": 1
+    },
+    "src/main.ts": {
+      "@typescript-eslint/no-unsafe-call": 1
+    },
+    "src/swagger.ts": {
+      "@typescript-eslint/no-unsafe-member-access": 1
+    },
+    "test/app.e2e-spec.ts": {
+      "@typescript-eslint/require-await": 1,
+      "@typescript-eslint/no-unsafe-assignment": 63,
+      "@typescript-eslint/no-unsafe-member-access": 114,
+      "prettier/prettier": 15,
+      "@typescript-eslint/no-unsafe-call": 7,
+      "@typescript-eslint/restrict-template-expressions": 1,
+      "@typescript-eslint/no-unsafe-return": 4,
+      "prefer-const": 1
+    },
+    "test/learner-preview.ts": {
+      "@typescript-eslint/require-await": 1,
+      "@typescript-eslint/no-unsafe-member-access": 4,
+      "@typescript-eslint/no-unsafe-call": 2,
+      "@typescript-eslint/no-misused-promises": 2
+    }
+  },
+  "format": {
+    "src/assessment-test/dto/create.dto.ts": "79dfb1a48a5e94dabccfaab6aa124837f9e7003b4cc37ca15d855cbad1eb9918",
+    "test/app.e2e-spec.ts": "ce14a644d5f9b843fb65aed6289a000509aef2570e0a438d1f7759ab1e86ed04"
+  }
+}

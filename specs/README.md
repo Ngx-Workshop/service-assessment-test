@@ -1,13 +1,25 @@
 # Assessment feature specifications
 
+## Next task: Code Maintenance
+
+Status: Implemented; integration pending. Selected on 2026-11-22; local maintenance
+tasks and verification are complete. Docker image execution and live Grafana
+receipt remain explicitly outstanding in the handoff.
+
+[Spec](007-code-maintenance/spec.md) · [Plan](007-code-maintenance/plan.md) ·
+[Tasks](007-code-maintenance/tasks.md) · [Handoff](007-code-maintenance/handoff.md) ·
+[Reusable Copilot prompt](../.github/prompts/code-maintenance.prompt.md)
+
+Continue with X001-X002 after separate infrastructure/deployment authorization.
+Older unfinished work retains its recorded status below.
+
 Use the local [workflow](../.specify/README.md) and [templates](../.specify/templates/)
 to create a spec, plan, tasks and handoff for each accepted implementation feature.
 Select work from the user's request; the highest folder number is not automatically
 active. Keep completed records for compatibility decisions and rationale.
 
 | Feature | Status | Spec | Plan | Tasks | Handoff |
-| --- | --- | --- | --- | --- | --- |
-
+| ------- | ------ | ---- | ---- | ----- | ------- |
 
 The documentation migration and source review are complete; see
 [assessment readiness and handoff](../docs/assessment-readiness.md). That review

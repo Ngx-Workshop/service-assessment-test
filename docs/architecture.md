@@ -15,6 +15,9 @@ and grading. It does not own the learner UI, admin shell, auth service or gatewa
 - `assessment-test.service.ts`: definition CRUD, owner-scoped attempts, eligibility,
   start/resume and perfect-score grading. Returns 400 for malformed input, 404 for
   absent/other-user records and 409 for conflicting or forbidden state changes.
+- `assessment-write.service.ts`: internal, explicitly injected Mongo write-lease
+  coordinator and safe write-outcome events. Only the assessment module registers it;
+  it is not exported. Domain service retains business decisions and atomic filters.
 - `schemas/`: existing definition/attempt storage plus canonical `userId`. New attempts
   write both userId and legacy uuid. Legacy reads use uuid only when userId is absent;
   mismatched identities are not merged. No bulk data migration is performed.
@@ -25,17 +28,17 @@ and grading. It does not own the learner UI, admin shell, auth service or gatewa
 
 ## Access and contracts
 
-| Operation | Access / behavior |
-| --- | --- |
-| GET/POST/PATCH/DELETE collection | Administrator; PATCH requires full fields, _id and __v |
-| GET/DELETE `:id` | Administrator; full answer keys on GET; DELETE returns 204 |
-| `user-asssessments` | Authenticated owner's attempts; legacy spelling retained |
-| `admin-user-asssessments/:id` | Administrator |
-| `user-subjects-eligibility` | Authenticated owner; validated subjects query |
-| `admin-user-subjects-eligibility/:id` | Administrator |
-| POST `start-test` | Authenticated owner; resumes an unfinished attempt or starts next level; 201 |
-| POST `submit-test` | Authenticated owner only; valid choices, one completion; 200 |
-| GET `attempts/:id/questions` | Owner only; prompts and choice values without answers or feedback |
+| Operation                             | Access / behavior                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| GET/POST/PATCH/DELETE collection      | Administrator; PATCH requires full fields, \_id and \_\_v                    |
+| GET/DELETE `:id`                      | Administrator; full answer keys on GET; DELETE returns 204                   |
+| `user-asssessments`                   | Authenticated owner's attempts; legacy spelling retained                     |
+| `admin-user-asssessments/:id`         | Administrator                                                                |
+| `user-subjects-eligibility`           | Authenticated owner; validated subjects query                                |
+| `admin-user-subjects-eligibility/:id` | Administrator                                                                |
+| POST `start-test`                     | Authenticated owner; resumes an unfinished attempt or starts next level; 201 |
+| POST `submit-test`                    | Authenticated owner only; valid choices, one completion; 200                 |
+| GET `attempts/:id/questions`          | Owner only; prompts and choice values without answers or feedback            |
 
 Legacy DELETE at the collection path remains available; the admin MFE uses DELETE by
 ID. Learners must use the owned questions route instead of the now-admin-only full
@@ -69,19 +72,27 @@ The unwired legacy attempt CRUD helper remains unused. No other service's collec
 are accessed. Production release must coordinate the updated admin consumer and
 verify gateway forwarding for the added DELETE and learner questions routes.
 
+Maintenance 007 preserves this dependency flow: root composition imports the
+assessment and observability features; assessment imports auth/model providers;
+domain service depends on both models and the internal write coordinator. The
+coordinator depends only on the definition model and the shared async request context,
+not on controllers or auth. No circular dependency, new global module, schema
+change or contract migration was introduced. See the [audit](../specs/007-code-maintenance/audit.md).
+
 ## Learner journey additions (2026-10-09)
+
 See [002 learner journey](../specs/002-learner-journey/spec.md). All new routes require authentication and use the canonical/legacy owner filter:
 
-| Route | Payload/access |
-| --- | --- |
-| GET `learner/catalog` | Subjects present in definitions/attempts, answer-free definition metadata, eligibility status, highest passed level and weighted accuracy |
-| GET `learner/history` | Owner's attempts, newest first, enriched with level/question count/draft answers; orphan legacy metadata is explicitly 0/unavailable |
+| Route                        | Payload/access                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `learner/catalog`        | Subjects present in definitions/attempts, answer-free definition metadata, eligibility status, highest passed level and weighted accuracy   |
+| GET `learner/history`        | Owner's attempts, newest first, enriched with level/question count/draft answers; orphan legacy metadata is explicitly 0/unavailable        |
 | PATCH `attempts/:id/answers` | Owner of an unfinished attempt; complete slot array with valid choices or empty strings; lease-serialized and atomic completed:false filter |
-| GET `attempts/:id/result` | Completed owner only; persisted grade and selected/correct answers plus author feedback; unfinished returns 409 |
+| GET `attempts/:id/result`    | Completed owner only; persisted grade and selected/correct answers plus author feedback; unfinished returns 409                             |
 
 POST start-test accepts optional assessmentTestId and rejects a stale/ineligible selection rather than silently starting a different test. Older callers omitting it retain existing behavior. New draftAnswers storage defaults to []; completion clears it. No identity migration, pass threshold, retry or progression change. Definitions remain immutable once used. Multiple definitions at an unlocked level are independently eligible.
 
-Contracts 0.0.20 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/* and attempts/* with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.
+Contracts 0.0.20 are generated locally and not published. The learner consumer uses a vendored archive pending release. Release producer/gateway before consumer; forwarding must support learner/_ and attempts/_ with existing session auth. The optional `test/learner-preview.ts` is an isolated loopback harness, outside AppModule, for the real frontend/service with synthetic identities and disposable Mongo.
 
 ## Document section subjects — 2026-10-09
 

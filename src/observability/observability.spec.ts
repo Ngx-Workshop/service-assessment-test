@@ -1,16 +1,30 @@
 import type { Server } from 'node:http';
-import { Controller, Get, INestApplication, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Controller,
+  Get,
+  INestApplication,
+  Logger,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
+import { AssessmentWriteService } from '../assessment-test/assessment-write.service';
+import { AssessmentTest } from '../assessment-test/schemas/assessment-test.schemas';
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Match callable Supertest in CommonJS service builds.
 import request = require('supertest');
 import { ObservabilityModule } from './observability.module';
-import { createServiceLogger, httpLoggingMiddleware } from './observability';
+import {
+  createServiceLogger,
+  httpLoggingMiddleware,
+  requestContext,
+} from './observability';
 
 @Controller('items')
 class TestController {
   @Get(':id')
-  get() {
-    return { ok: true };
+  async get() {
+    await new Promise((resolve) => setImmediate(resolve));
+    return { ok: true, requestId: requestContext.getStore()?.requestId };
   }
 }
 
@@ -57,6 +71,9 @@ describe('Service observability', () => {
       .set('Cookie', 'session=private-cookie')
       .expect(200);
     expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(response.body).toMatchObject({
+      requestId: response.headers['x-request-id'],
+    });
     expect(log).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'http_request',
@@ -106,6 +123,94 @@ describe('Service observability', () => {
       );
     } finally {
       write.mockRestore();
+    }
+  });
+
+  it('ignores caller correlation data and isolates concurrent HTTP contexts', async () => {
+    const responses = await Promise.all(
+      ['one', 'two'].map((id) =>
+        request(app.getHttpServer())
+          .get(`/items/${id}`)
+          .set('X-Request-ID', 'private-caller-id')
+          .expect(200)
+      )
+    );
+    const ids = responses.map((response) => response.headers['x-request-id']);
+    expect(new Set(ids).size).toBe(2);
+    responses.forEach((response, index) => {
+      expect(response.body).toMatchObject({ requestId: ids[index] });
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-caller-id');
+    expect(requestContext.getStore()).toBeUndefined();
+  });
+
+  it('serializes real domain success/rejection/failure without canary content', async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        AssessmentWriteService,
+        {
+          provide: getModelToken(AssessmentTest.name),
+          useValue: {
+            db: {
+              collection: () => ({
+                findOneAndUpdate: () => Promise.resolve(),
+                deleteOne: () => Promise.resolve(),
+              }),
+            },
+          },
+        },
+      ],
+    }).compile();
+    const writes = module.get(AssessmentWriteService);
+    const stdout = jest
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
+    const stderr = jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+    try {
+      Logger.overrideLogger(createServiceLogger());
+      await writes.run('submit', () =>
+        Promise.resolve({ answer: 'private-answer' })
+      );
+      const rejected = new ConflictException('private-rejection');
+      await expect(
+        writes.run('start', () => Promise.reject(rejected))
+      ).rejects.toBe(rejected);
+      const failure = new Error('private-storage-token');
+      await expect(
+        writes.run('create', () => Promise.reject(failure))
+      ).rejects.toBe(failure);
+      expect(JSON.parse(String(stdout.mock.calls[0][0]))).toMatchObject({
+        level: 'log',
+        context: 'AssessmentWriteService',
+        message: {
+          event: 'assessment_write',
+          outcome: 'success',
+          operation: 'submit',
+        },
+      });
+      expect(JSON.parse(String(stdout.mock.calls[1][0]))).toMatchObject({
+        level: 'warn',
+        context: 'AssessmentWriteService',
+        message: {
+          event: 'assessment_write',
+          outcome: 'rejected',
+          statusCode: 409,
+        },
+      });
+      expect(JSON.parse(String(stderr.mock.calls[0][0]))).toMatchObject({
+        level: 'error',
+        context: 'AssessmentWriteService',
+        message: { event: 'assessment_write', outcome: 'failure' },
+      });
+      expect(
+        JSON.stringify([...stdout.mock.calls, ...stderr.mock.calls])
+      ).not.toContain('private-');
+    } finally {
+      Logger.overrideLogger(false);
+      stdout.mockRestore();
+      stderr.mockRestore();
     }
   });
 });

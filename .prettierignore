@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+contracts/
+openapi.json
+package-lock.json
+*.tsbuildinfo
+.husky/_/
+deploy-source.tar
